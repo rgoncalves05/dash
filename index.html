@@ -12,6 +12,7 @@
   .phone { width:100%; height:100vh; overflow:hidden; background:#0a1628; position:relative; }
   .status-bar { height:44px; display:flex; align-items:center; justify-content:space-between; padding:0 24px; font-size:12px; color:#fff; font-weight:600; }
   .screen { height:calc(100% - 44px); display:flex; flex-direction:column; position:relative; transition:opacity .3s; overflow:hidden; }
+  .screen-scroll { flex:1; overflow-y:auto; display:flex; flex-direction:column; }
   .screen.hidden { display:none; }
   /* Top logo bar */
   .top-logo-bar { height:48px; display:flex; align-items:center; justify-content:center; position:relative; flex-shrink:0; padding:0 16px; }
@@ -31,7 +32,8 @@
   .tab-btn.active span { color:#3b82f6; font-weight:700; }
   /* Categories */
   .cat-bar { display:flex; gap:0; padding:6px 12px; overflow-x:hidden; justify-content:space-between; }
-  .cat-chip { display:flex; align-items:center; justify-content:center; flex:1; padding:8px 4px; border-radius:20px; border:1px solid #1e3a5f; background:transparent; cursor:pointer; transition:all .2s; font-family:'Inter',sans-serif; font-size:13px; color:#94a3b8; margin:0 3px; }
+  .cat-chip { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; flex:1; padding:6px 4px; border-radius:14px; border:1px solid #1e3a5f; background:transparent; cursor:pointer; transition:all .2s; font-family:'Inter',sans-serif; color:#94a3b8; margin:0 3px; }
+  .cat-chip span.cat-label { font-size:8px; font-weight:600; letter-spacing:.3px; text-transform:uppercase; }
   .cat-chip.active { background:var(--cat-color-bg); border-color:var(--cat-color); color:var(--cat-color); font-weight:600; }
   .cat-chip svg { width:16px; height:16px; color:inherit; }
   .sub-bar { display:flex; gap:8px; padding:4px 16px 8px; overflow-x:auto; }
@@ -442,7 +444,7 @@ const FEED_POSTS=[
 
 const ic=(id,w=16)=>`<svg width="${w}" height="${w}" style="flex-shrink:0;color:#94a3b8"><use href="#${id}"/></svg>`;
 
-let state={screen:"login",tab:"home",category:"filmes",subcat:0,event:null,liked:false,saved:false,bought:false,activeTribo:null,aiTribo:null,showExtra:false,showRating:false,userRating:0,userRatingDone:false,userTribo:null,showCompose:false};
+let state={screen:"login",tab:"home",category:"filmes",subcat:0,event:null,liked:false,saved:false,bought:false,activeTribo:null,aiTribo:null,showExtra:false,showRating:false,userRating:0,userRatingDone:false,userTribos:[],showCompose:false,showComment:false,commentRating:0};
 let userRatings={};
 
 function render(){
@@ -453,21 +455,24 @@ function render(){
   if(state.screen==="ai") return renderAI(app);
   if(state.screen==="settings") return renderSettings(app);
   if(state.screen==="tribos") return renderTribos(app);
+  if(state.screen==="tribo-detail") return renderTriboDetail(app);
   if(state.screen==="stats") return renderStats(app);
   let html=`<div class="screen">`;
-  // Top logo bar
-  const userTriboObj=state.userTribo?TRIBOS.find(t=>t.id===state.userTribo):null;
-  html+=`<div class="top-logo-bar">
+  // Top logo bar — dentro do scroll para rolar com o conteúdo
+  const userTriboObj=state.userTribos&&state.userTribos.length?TRIBOS.find(t=>t.id===state.userTribos[0]):null;
+  const logoBar=`<div class="top-logo-bar">
     <div class="top-logo-center">
       <div class="top-logo-text">DA<i>S</i>H</div>
       <div class="top-logo-agenda"><span>AGENDA</span><span>CULTURAL</span></div>
     </div>
     ${userTriboObj?`<div class="top-tribo-badge" onclick="state.screen='tribos';render()" title="${userTriboObj.name}"><span>${userTriboObj.emoji}</span><span style="color:#94a3b8;font-size:11px">${userTriboObj.name}</span></div>`:""}
   </div>`;
+  html+=`<div class="screen-scroll">${logoBar}`;
   if(state.tab==="home") html+=renderHome();
   else if(state.tab==="search") html+=renderSearch();
   else if(state.tab==="calendar") html+=renderAgenda();
   else if(state.tab==="profile") html+=renderProfile();
+  html+=`</div>`; // fecha screen-scroll
   html+=renderTabBar();
   html+=`</div>`;
   app.innerHTML=html;
@@ -537,15 +542,17 @@ function renderSplash(app){
 function renderHome(){
   const events=EVENTS[state.category]||[];
   const subs=SUBCATEGORIES[state.category]||[];
-  let cats=CATEGORIES.map(c=>`<button class="cat-chip ${state.category===c.id?"active":""}" title="${c.label}" style="--cat-color:${c.color};--cat-color-bg:${c.color}22" onclick="state.category='${c.id}';state.subcat=0;state.activeTribo=null;render()">${ic(c.icon,20)}</button>`).join("");
+  let cats=CATEGORIES.map(c=>`<button class="cat-chip ${state.category===c.id?"active":""}" title="${c.label}" style="--cat-color:${c.color};--cat-color-bg:${c.color}22" onclick="state.category='${c.id}';state.subcat=0;state.activeTribo=null;render()">${ic(c.icon,18)}<span class="cat-label">${c.label}</span></button>`).join("");
   let subhtml=subs.map((s,i)=>`<button class="sub-chip ${state.subcat===i?"active":""}" onclick="state.subcat=${i};render()">${s}</button>`).join("");
   if(state.category==="feed"){
     let feedhtml=FEED_POSTS.map(p=>{
       const ev=Object.values(EVENTS).flat().find(e=>e.id===p.evId);
+      const stars=p.rating?[1,2,3,4,5].map(s=>s<=p.rating?"⭐":"☆").join(""):"";
       return `<div style="background:#12233d;border-radius:16px;padding:14px;margin-bottom:10px">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
           <div style="width:36px;height:36px;border-radius:50%;background:#1e3a5f;display:flex;align-items:center;justify-content:center;font-size:18px">${p.avatar}</div>
           <div style="flex:1"><div style="font-size:14px;font-weight:600;color:#fff">${p.user}</div><div style="font-size:11px;color:#64748b">${p.time}</div></div>
+          ${stars?`<div style="font-size:12px;letter-spacing:1px">${stars}</div>`:""}
         </div>
         <p style="font-size:13px;color:#cbd5e1;line-height:1.5;margin-bottom:10px">${p.text}</p>
         ${ev?`<div style="display:flex;gap:10px;background:#0a1628;border-radius:12px;padding:10px;cursor:pointer" onclick="openEvent(${ev.id})">
@@ -562,23 +569,26 @@ function renderHome(){
     return `<div class="header" style="justify-content:flex-end"><div class="header-right"><button class="header-stats-btn" onclick="state.screen='stats';render()">${ic("i-trophy",12)}<span>Stats</span></button><button class="header-tribos-btn" onclick="state.screen='tribos';render()">${ic("i-users",12)}<span>Tribos</span></button><button class="header-ai-btn" onclick="state.aiContextEvent=null;aiMessages=[];aiConversation=[];state.screen='ai';render()">${ic("i-sparkle",12)}<span>Dash.AI</span></button><button class="header-bell">${ic("i-bell",18)}</button></div></div>
     <div class="cat-bar">${cats}</div><div class="sub-bar">${subhtml}</div>
     ${state.activeTribo?`<div class="feed-tribo-badge"><div class="tribo-badge-emoji">${(TRIBOS.find(t=>t.id===state.activeTribo)||{}).emoji||""}</div><div><div class="tribo-badge-name">${(TRIBOS.find(t=>t.id===state.activeTribo)||{}).name||""}</div><div class="tribo-badge-desc">${(TRIBOS.find(t=>t.id===state.activeTribo)||{}).desc||""}</div></div></div>`:""}
-    <div class="new-post-btn" onclick="state.showCompose=true;render()">
-      <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">B</div>
-      <span>O que você está curtindo agora?</span>
-      <div style="margin-left:auto;background:#3b82f6;border-radius:20px;padding:5px 12px;font-size:12px;font-weight:600;color:#fff">Postar</div>
+    <div style="padding:8px 16px 6px">
+      ${state.showCompose
+        ? `<div style="background:#12233d;border-radius:14px;padding:12px 14px;border:1px solid #1e3a5f">
+            <textarea id="compose-text" maxlength="280" placeholder="O que você está curtindo agora?" autofocus style="width:100%;background:#0a1628;border:1px solid #1e3a5f;border-radius:10px;padding:8px 10px;color:#fff;font-size:13px;font-family:'Inter',sans-serif;resize:none;outline:none;min-height:60px;margin-bottom:8px;box-sizing:border-box" oninput="document.getElementById('compose-char2').textContent=this.value.length+'/280'"></textarea>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:11px;color:#64748b" id="compose-char2">0/280</span>
+              <div style="display:flex;gap:8px">
+                <button onclick="state.showCompose=false;render()" style="padding:7px 14px;background:transparent;border:1px solid #1e3a5f;border-radius:10px;color:#64748b;font-size:12px;font-family:'Inter',sans-serif;cursor:pointer">Cancelar</button>
+                <button class="post-submit-btn" onclick="submitPost()">Publicar</button>
+              </div>
+            </div>
+          </div>`
+        : `<div style="display:flex;align-items:center;gap:10px;background:#12233d;border-radius:12px;padding:8px 12px;border:1px solid #1e3a5f;cursor:pointer" onclick="state.showCompose=true;render()">
+            <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0">B</div>
+            <span style="font-size:12px;color:#475569;flex:1">No que você está pensando?</span>
+            <div style="background:#3b82f6;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;color:#fff">Postar</div>
+          </div>`
+      }
     </div>
-    <div class="event-list">${feedhtml}</div>
-    ${state.showCompose?`<div class="post-compose">
-      <div class="post-compose-header">
-        <span class="post-compose-title">Novo post</span>
-        <button class="post-compose-close" onclick="state.showCompose=false;render()">✕</button>
-      </div>
-      <textarea id="compose-text" maxlength="280" placeholder="Conte sobre o que você foi, o que vai ver, o que amou..." oninput="document.getElementById('compose-char').textContent=this.value.length+'/280'"></textarea>
-      <div class="post-compose-footer">
-        <span class="post-char" id="compose-char">0/280</span>
-        <button class="post-submit-btn" onclick="submitPost()">Publicar</button>
-      </div>
-    </div>`:""}`;
+    <div class="event-list">${feedhtml}</div>`;
   }
   let evhtml=events.map(ev=>`<div class="event-card" onclick="openEvent(${ev.id})">
     <div class="event-img"><img src="${ev.img}" alt="${ev.title}" onerror="this.onerror=null;this.style.display='none';this.parentElement.style.background='linear-gradient(135deg,#1e3a5f,#3b82f6)';this.parentElement.innerHTML='<div style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:rgba(255,255,255,0.5)\\'>'+this.alt.charAt(0)+'</div>'"></div>
@@ -659,34 +669,120 @@ function goToTriboAI(triboId,ev){
 
 function renderTribos(app){
   let grid=TRIBOS.map(t=>{
-    const joined=state.userTribo===t.id;
-    return `<div class="tribo-card" onclick="goToTriboFeed('${t.id}')">
-    <div class="tribo-card-img"><img src="${t.img}" alt="${t.name}" onerror="this.onerror=null;this.style.display='none';this.parentElement.style.background='linear-gradient(135deg,${t.color}44,${t.color}88)';this.parentElement.innerHTML='<div style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:36px\\'>${t.emoji}</div>'"><div class="tribo-emoji">${t.emoji}</div></div>
+    const tribos=state.userTribos||[];
+    const isPrincipal=tribos[0]===t.id;
+    const isSecondary=!isPrincipal&&tribos.includes(t.id);
+    const isMember=isPrincipal||isSecondary;
+
+    let cardStyle=``;
+    if(isPrincipal) cardStyle=`border:2px solid ${t.color};box-shadow:0 0 16px ${t.color}44;`;
+    else if(isSecondary) cardStyle=`border:1.5px solid ${t.color}88;`;
+
+    let badge="";
+    if(isPrincipal) badge=`<div style="position:absolute;top:8px;right:8px;background:${t.color};color:#fff;font-size:9px;font-weight:800;padding:3px 8px;border-radius:20px;letter-spacing:.5px">PRINCIPAL</div>`;
+    else if(isSecondary) badge=`<div style="position:absolute;top:8px;right:8px;background:${t.color}33;color:${t.color};font-size:9px;font-weight:700;padding:3px 8px;border-radius:20px;border:1px solid ${t.color}55">membro</div>`;
+
+    return `<div class="tribo-card" style="${cardStyle}position:relative" onclick="(function(){
+      const tribos=state.userTribos||[];
+      const idx=tribos.indexOf('${t.id}');
+      if(idx===-1){ state.userTribos=[...tribos,'${t.id}']; }
+      else { state.userTribos=tribos.filter(x=>x!=='${t.id}'); }
+      render();
+    })()">
+    ${badge}
+    <div class="tribo-card-img" onclick="event.stopPropagation();goToTriboFeed('${t.id}')">
+      <img src="${t.img}" alt="${t.name}" style="${isPrincipal?"filter:brightness(1.1)":""}" onerror="this.onerror=null;this.style.display='none';this.parentElement.style.background='linear-gradient(135deg,${t.color}44,${t.color}88)';this.parentElement.innerHTML='<div style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:36px\\'>${t.emoji}</div>'">
+      <div class="tribo-emoji">${t.emoji}</div>
+    </div>
     <div class="tribo-card-info">
-      <div class="tribo-name">${t.name}${joined?` <span style="font-size:10px;background:${t.color}22;color:${t.color};padding:2px 7px;border-radius:10px;vertical-align:middle">sua tribo</span>`:""}</div>
+      <div class="tribo-name" style="${isMember?"color:"+t.color:""}">${t.name}</div>
       <div class="tribo-desc">${t.desc}</div>
-      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
-        <button class="tribo-ai-btn" onclick="goToTriboAI('${t.id}',event)" style="border-color:${t.color};color:${t.color}">🤖 Dash.AI</button>
-        <button class="tribo-join-btn" style="border-color:${t.color};color:${joined?"#fff":t.color};background:${joined?t.color:"transparent"}" onclick="event.stopPropagation();state.userTribo=${joined?"null":"'"+t.id+"'"};render()">${joined?"✓ Minha tribo":"+ Entrar"}</button>
-      </div>
     </div>
   </div>`;
   }).join("");
+
+  const principal=state.userTribos&&state.userTribos.length?TRIBOS.find(t=>t.id===state.userTribos[0]):null;
+  const headerNote=principal
+    ?`<div style="display:flex;align-items:center;gap:8px;background:#12233d;border-radius:12px;padding:8px 12px;margin:0 16px 12px">
+        <span style="font-size:16px">${principal.emoji}</span>
+        <div><div style="font-size:11px;color:#64748b">Sua tribo principal</div><div style="font-size:13px;font-weight:700;color:${principal.color}">${principal.name}</div></div>
+        <div style="margin-left:auto;font-size:11px;color:#64748b">${(state.userTribos.length>1?`+${state.userTribos.length-1} outra${state.userTribos.length>2?"s":""}`:"")} </div>
+      </div>`
+    :`<div style="padding:0 16px 10px;font-size:12px;color:#64748b">Toque no card para entrar numa tribo · Toque na imagem para ver o feed</div>`;
+
   app.innerHTML=`<div class="tribos-screen">
     <div class="tribos-header">
       <button onclick="state.screen='app';render()">${ic("i-back",18)}</button>
       <h1>Tribos Culturais</h1>
     </div>
+    ${headerNote}
     <div class="tribos-grid">${grid}</div>
   </div>`;
 }
 
 function goToTriboFeed(triboId){
-  state.screen="app";
-  state.tab="home";
-  state.category="feed";
+  state.screen="tribo-detail";
   state.activeTribo=triboId;
   render();
+}
+
+function renderTriboDetail(app){
+  const t=TRIBOS.find(t=>t.id===state.activeTribo);
+  if(!t) return;
+  const tribos=state.userTribos||[];
+  const joined=tribos.includes(t.id);
+  const isPrincipal=tribos[0]===t.id;
+  const triboEvents=Object.values(EVENTS).flat().slice(0,4);
+  const posts=FEED_POSTS.slice(0,3);
+  app.innerHTML=`<div style="height:100%;overflow-y:auto;background:#0a1628">
+    <!-- Hero -->
+    <div style="position:relative;height:180px;overflow:hidden">
+      <img src="${t.img}" style="width:100%;height:100%;object-fit:cover;filter:brightness(.5)" onerror="this.style.display='none'">
+      <div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 40%,#0a1628)"></div>
+      <button onclick="state.screen='tribos';render()" style="position:absolute;top:12px;left:12px;background:rgba(0,0,0,.5);border:none;border-radius:20px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:18px">←</button>
+      <div style="position:absolute;bottom:16px;left:16px;right:16px;display:flex;align-items:flex-end;justify-content:space-between">
+        <div>
+          <div style="font-size:32px;margin-bottom:4px">${t.emoji}</div>
+          <div style="font-size:22px;font-weight:800;color:#fff">${t.name}</div>
+          <div style="font-size:12px;color:#94a3b8">${t.desc}</div>
+        </div>
+      </div>
+    </div>
+    <!-- Botão de adesão -->
+    <div style="padding:16px 16px 0">
+      <button onclick="(function(){const tribos=state.userTribos||[];const idx=tribos.indexOf('${t.id}');if(idx===-1){state.userTribos=[...tribos,'${t.id}'];}else{state.userTribos=tribos.filter(x=>x!=='${t.id}');}render();})()" style="width:100%;padding:14px;border-radius:14px;border:2px solid ${t.color};background:${joined?t.color:"transparent"};color:${joined?"#fff":t.color};font-size:15px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px">
+        ${isPrincipal?`★ Sua tribo principal`:joined?`✓ Você é desta tribo`:`+ Quero ser desta tribo`}
+      </button>
+      ${joined&&!isPrincipal?`<button onclick="state.userTribos=['${t.id}',...(state.userTribos||[]).filter(x=>x!=='${t.id}')];render()" style="width:100%;margin-top:8px;padding:10px;border-radius:12px;border:1px solid ${t.color}55;background:transparent;color:${t.color};font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif">Tornar principal</button>`:""}
+    </div>
+    <!-- Sobre -->
+    <div style="padding:16px">
+      <div style="font-size:11px;font-weight:700;color:${t.color};letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">Sobre a tribo</div>
+      <p style="font-size:13px;color:#cbd5e1;line-height:1.6;background:#12233d;border-radius:14px;padding:14px">${TRIBO_PERSONAS[t.id]?TRIBO_PERSONAS[t.id].tone.replace(/Voce e /,"").split(".")[0]+".":"Uma tribo apaixonada por cultura paulistana."}</p>
+    </div>
+    <!-- Eventos em destaque -->
+    <div style="padding:0 16px 16px">
+      <div style="font-size:11px;font-weight:700;color:${t.color};letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">Eventos em destaque</div>
+      <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px">
+        ${triboEvents.map(ev=>`<div onclick="openEvent(${ev.id})" style="flex-shrink:0;width:110px;background:#12233d;border-radius:12px;overflow:hidden;cursor:pointer">
+          <img src="${ev.img}" style="width:100%;height:70px;object-fit:cover" onerror="this.style.background='#1e3a5f'">
+          <div style="padding:6px 8px"><div style="font-size:10px;font-weight:600;color:#fff;line-height:1.3">${ev.title}</div><div style="font-size:9px;color:#64748b;margin-top:2px">${ev.date}</div></div>
+        </div>`).join("")}
+      </div>
+    </div>
+    <!-- Feed da tribo -->
+    <div style="padding:0 16px 80px">
+      <div style="font-size:11px;font-weight:700;color:${t.color};letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">Feed da tribo</div>
+      ${posts.map(p=>`<div style="background:#12233d;border-radius:14px;padding:12px;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <div style="width:30px;height:30px;border-radius:50%;background:#1e3a5f;display:flex;align-items:center;justify-content:center;font-size:15px">${p.avatar}</div>
+          <div><div style="font-size:13px;font-weight:600;color:#fff">${p.user}</div><div style="font-size:10px;color:#64748b">${p.time}</div></div>
+        </div>
+        <p style="font-size:12px;color:#cbd5e1;line-height:1.5;margin:0">${p.text}</p>
+      </div>`).join("")}
+      <button onclick="state.aiTribo='${t.id}';state.aiContextEvent=null;aiMessages=[];aiConversation=[];state.screen='ai';render()" style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(59,130,246,.15),rgba(139,92,246,.15));border:1px solid rgba(59,130,246,.3);border-radius:14px;color:#93c5fd;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;margin-top:8px">🤖 Falar com Dash.AI no modo ${t.name}</button>
+    </div>
+  </div>`;
 }
 
 let settingsOpen={};
@@ -796,15 +892,75 @@ function renderStats(app){
   });
   radarSvg+=`</svg>`;
 
-  // Streak calendar (28 days)
-  const streakDays=[];
-  for(let i=0;i<28;i++){
-    const active=Math.random()>.35;
-    const intensity=active?(Math.random()>.5?"#3b82f6":"#2563eb"):"#12233d";
-    streakDays.push(intensity);
+  // Calendário navegável
+  const calMonth = state.calMonth||0; // 0=abr, -1=mar, 1=mai
+  const monthNames=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  const baseYear=2026, baseMonth=3; // abril=3 (0-indexed)
+  const targetMonth=(baseMonth+calMonth+120)%12;
+  const targetYear=baseYear+Math.floor((baseMonth+calMonth)/12);
+  const firstDay=new Date(targetYear,targetMonth,1).getDay();
+  const daysInMonth=new Date(targetYear,targetMonth+1,0).getDate();
+
+  const allEvsByDate={
+    "2026-04-04":{cat:"🎸",nome:"Monsters of Rock",comprado:true},
+    "2026-04-05":{cat:"🎸",nome:"Monsters of Rock",comprado:true},
+    "2026-04-08":{cat:"🖼️",nome:"SP-Arte 2026",comprado:false},
+    "2026-04-09":{cat:"🖼️",nome:"SP-Arte 2026",comprado:false},
+    "2026-04-14":{cat:"🎵",nome:"Roxette",comprado:true},
+    "2026-04-16":{cat:"🎬",nome:"Advogado de Deus",comprado:false},
+    "2026-04-19":{cat:"🎭",nome:"Betrayal",comprado:true},
+    "2026-04-23":{cat:"🎵",nome:"Jackson Wang",comprado:true},
+    "2026-04-25":{cat:"🎵",nome:"The Lumineers",comprado:false},
+    "2026-04-26":{cat:"🎬",nome:"Zico, O Samurai",comprado:false},
+    "2026-04-30":{cat:"🎵",nome:"The Weeknd",comprado:true},
+    "2026-03-15":{cat:"🎭",nome:"Hermanoteu",comprado:true},
+    "2026-03-22":{cat:"🎬",nome:"Diabo Veste Prada",comprado:true},
+    "2026-03-28":{cat:"🖼️",nome:"Renoir - MASP",comprado:false},
+    "2026-05-10":{cat:"🎵",nome:"The Weeknd 2ª",comprado:true},
+    "2026-05-18":{cat:"🎸",nome:"Mac DeMarco",comprado:false},
+    "2026-05-24":{cat:"🖼️",nome:"Tayou: Nocaute",comprado:false}
+  };
+
+  const pad=n=>String(n).padStart(2,"0");
+  const diasSemana=["D","S","T","Q","Q","S","S"];
+  const numRows=Math.ceil((firstDay+daysInMonth)/7);
+
+  const calCss=`<style>
+    .cal-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+    .cal-nav-btn { background:#12233d; border:1px solid #1e3a5f; border-radius:10px; width:28px; height:28px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#94a3b8; font-size:14px; font-family:sans-serif; }
+    .cal-nav-title { font-size:13px; font-weight:700; color:#fff; }
+    .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+    .cal-header-cell { font-size:9px; color:#475569; font-weight:700; text-align:center; padding:2px 0; }
+    .cal-cell { border-radius:6px; min-height:40px; padding:2px 3px; display:flex; flex-direction:column; }
+    .cal-cell.empty { background:transparent; }
+    .cal-cell.blank { background:#0d1c30; }
+    .cal-cell.has-event { background:linear-gradient(135deg,#1e3a5f,#1a3a6e); border:1px solid #3b82f644; }
+    .cal-cell.comprado { background:linear-gradient(135deg,#14532d,#166534); border:1px solid #22c55e55; }
+    .cal-day-num { font-size:9px; color:#475569; font-weight:600; line-height:1; margin-bottom:1px; }
+    .cal-cell.has-event .cal-day-num { color:#93c5fd; }
+    .cal-cell.comprado .cal-day-num { color:#86efac; }
+    .cal-ev-cat { font-size:10px; line-height:1; }
+    .cal-ev-name { font-size:6px; color:#94a3b8; line-height:1.2; overflow:hidden; }
+    .cal-cell.comprado .cal-ev-name { color:#bbf7d0; }
+    .cal-legend { display:flex; gap:12px; margin-top:8px; }
+    .cal-legend-item { display:flex; align-items:center; gap:4px; font-size:10px; color:#64748b; }
+    .cal-legend-dot { width:8px; height:8px; border-radius:2px; }
+    .user-score-btn { background:linear-gradient(135deg,#3b82f6,#8b5cf6); border:none; border-radius:14px; padding:8px 18px; color:#fff; font-size:15px; font-weight:800; cursor:pointer; font-family:'Inter',sans-serif; box-shadow:0 4px 15px rgba(59,130,246,.3); }
+  </style>`;
+
+  let calRows=diasSemana.map(d=>`<div class="cal-header-cell">${d}</div>`).join("");
+  for(let i=0;i<numRows*7;i++){
+    const day=i-firstDay+1;
+    if(day<1||day>daysInMonth){ calRows+=`<div class="cal-cell empty"></div>`; continue; }
+    const key=`${targetYear}-${pad(targetMonth+1)}-${pad(day)}`;
+    const ev=allEvsByDate[key];
+    if(ev){
+      const cls=ev.comprado?"comprado":"has-event";
+      calRows+=`<div class="cal-cell ${cls}"><span class="cal-day-num">${day}</span><span class="cal-ev-cat">${ev.cat}</span><span class="cal-ev-name">${ev.nome}</span></div>`;
+    } else {
+      calRows+=`<div class="cal-cell blank"><span class="cal-day-num">${day}</span></div>`;
+    }
   }
-  // Force last 12 days active for "streak 12"
-  for(let i=16;i<28;i++) streakDays[i]=Math.random()>.3?"#3b82f6":"#60a5fa";
 
   const badges=[
     {emoji:"🎬",name:"Cinephile",desc:"10 filmes",unlocked:true},
@@ -860,19 +1016,24 @@ function renderStats(app){
         </div>
       </div>
 
-      <!-- STREAK -->
+      <!-- CALENDÁRIO CULTURAL -->
       <div class="stats-section">
-        <div class="stats-section-title">Sequencia</div>
+        <div class="stats-section-title">Calendário Cultural</div>
+        ${calCss}
         <div class="streak-card">
           <div class="streak-header">
-            <div class="streak-fire">🔥 <span>12</span> <small>dias seguidos</small></div>
-            <div class="streak-best">Recorde: 18 dias</div>
+            <div class="streak-fire">🔥 <span>11</span> <small>eventos este mês</small></div>
+            <div class="streak-best">Recorde: 20 eventos</div>
           </div>
-          <div style="display:flex;gap:4px;margin-bottom:6px;justify-content:space-around">
-            ${["S","T","Q","Q","S","S","D"].map(d=>`<div style="font-size:9px;color:#64748b;text-align:center;width:100%">${d}</div>`).join("")}
+          <div class="cal-nav">
+            <button class="cal-nav-btn" onclick="state.calMonth=(state.calMonth||0)-1;renderStats(document.getElementById('app'))">◀</button>
+            <span class="cal-nav-title">${monthNames[targetMonth]} ${targetYear}</span>
+            <button class="cal-nav-btn" onclick="state.calMonth=(state.calMonth||0)+1;renderStats(document.getElementById('app'))">▶</button>
           </div>
-          <div class="streak-grid">
-            ${streakDays.map(c=>`<div class="streak-day" style="background:${c}"></div>`).join("")}
+          <div class="cal-grid">${calRows}</div>
+          <div class="cal-legend">
+            <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#166534"></div>Ingresso comprado</div>
+            <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#1e3a5f"></div>Evento salvo</div>
           </div>
         </div>
       </div>
@@ -915,7 +1076,9 @@ function renderStats(app){
             <div class="rank-pos" style="color:${r.pos<=3?["#f59e0b","#94a3b8","#cd7f32"][r.pos-1]:"#64748b"}">${r.pos<=3?["🥇","🥈","🥉"][r.pos-1]:r.pos}</div>
             <div class="rank-avatar">${r.emoji}</div>
             <div class="rank-name">${r.name}${r.me?" (voce)":""}</div>
-            <div class="rank-pts">${r.pts} XP</div>
+            ${r.me
+              ?`<button class="user-score-btn">${r.pts} XP</button>`
+              :`<div class="rank-pts">${r.pts} XP</div>`}
           </div>`).join("")}
         </div>
       </div>
@@ -947,7 +1110,7 @@ function renderProfile(){
 let aiMessages=[];
 let aiConversation=[];
 
-const DASH_AI_KEY="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";
+const DASH_AI_KEY="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";
 
 const TRIBO_PERSONAS={
   cinephiles:{tone:"Voce e um cinefilo apaixonado. Fala com referencias cinematograficas, menciona diretores e tecnicas. Usa expressoes como 'esse roteiro e genial', 'fotografia impecavel', 'a montagem e primorosa'. Prioriza recomendar FILMES, mas conhece tudo. Trate cada filme como uma obra de arte."},
@@ -1092,7 +1255,7 @@ async function sendAI(){
         "anthropic-dangerous-direct-browser-access":"true"
       },
       body:JSON.stringify({
-        model:"claude-haiku-4-5-20251001",
+        model:"claude-sonnet-4-6",
         max_tokens:512,
         system:buildSystemPrompt(),
         messages:aiConversation.slice(-10)
@@ -1118,7 +1281,7 @@ function renderDetail(app){
   if(!ev) return;
   const comments=COMMENTS[ev.id]||[];
   let commentsHtml=comments.length?`<div class="comments-section"><div class="comments-title">Comentarios <span>(${comments.length})</span></div>
-  ${comments.map(c=>`<div class="comment-card"><div class="comment-header"><div class="comment-avatar">${c.avatar}</div><div><span class="comment-user">${c.user}</span><span class="comment-time">${c.time}</span></div><div class="comment-stars">${[1,2,3,4,5].map(s=>s<=c.rating?ic("i-star",10):ic("i-star-empty",10)).join("")}</div></div><p class="comment-text">${c.text}</p><div class="comment-likes">${ic("i-heart",12)} ${c.likes}</div></div>`).join("")}</div>`:"";
+  ${comments.map(c=>`<div class="comment-card"><div class="comment-header"><div class="comment-avatar">${c.avatar}</div><div><span class="comment-user">${c.user}</span><span class="comment-time">${c.time}</span></div>${c.rating?`<div style="display:flex;align-items:center;gap:3px;background:#0a1628;padding:4px 8px;border-radius:8px;margin-left:auto;border:1px solid #f59e0b33"><span style="font-size:11px;color:#f59e0b">★</span><span style="font-size:12px;color:#f59e0b;font-weight:700">${c.rating}</span></div>`:""}</div><p class="comment-text">${c.text}</p><div class="comment-likes">${ic("i-heart",12)} ${c.likes}</div></div>`).join("")}</div>`:"";
 
   // Extra info block
   let extraHtml="";
@@ -1137,7 +1300,10 @@ function renderDetail(app){
   const currentRating=userRatings[ev.id]||0;
   const ratingHtml=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
     <div style="display:flex;align-items:center;gap:4px;background:#12233d;padding:6px 10px;border-radius:12px">${ic("i-star",14)} <span style="font-size:14px;color:#f59e0b;font-weight:700">${ev.rating}</span></div>
-    <button class="ver-mais-btn" onclick="state.showRating=!state.showRating;render()">${currentRating?"✏️ sua nota: "+currentRating+"★":"⭐ avaliar"}</button>
+    ${currentRating
+      ?`<div style="display:flex;align-items:center;gap:4px;background:#12233d;padding:6px 10px;border-radius:12px;border:1px solid #f59e0b44;cursor:pointer" onclick="state.showRating=!state.showRating;render()"><span style="font-size:12px;color:#f59e0b">★</span><span style="font-size:13px;color:#f59e0b;font-weight:700">${currentRating}</span><span style="font-size:10px;color:#64748b;margin-left:2px">sua nota</span></div>`
+      :`<button class="ver-mais-btn" onclick="state.showRating=!state.showRating;render()">⭐ avaliar</button>`
+    }
   </div>
   ${state.showRating?`<div class="rating-popup">
     <div class="rating-popup-title">Sua avaliação</div>
@@ -1167,9 +1333,17 @@ function renderDetail(app){
     ${aiBtn}
     <div class="social-actions">
       <button class="social-btn ${state.liked?"liked":""}" onclick="state.liked=!state.liked;render()">${ic("i-heart",16)} ${state.liked?"Curtido!":"Curtir"}</button>
-      <button class="social-btn">${ic("i-msg",16)} Comentar</button>
+      <button class="social-btn" onclick="state.showComment=!state.showComment;render()">${ic("i-msg",16)} Comentar</button>
       <button class="social-btn">${ic("i-share",16)} Enviar</button>
     </div>
+    ${state.showComment?`<div class="rating-popup">
+      <div class="rating-popup-title">Seu comentário</div>
+      <div class="star-row">
+        ${[1,2,3,4,5].map(s=>`<button class="star-pick comment-star" onclick="state.commentRating=${s};document.querySelectorAll('.comment-star').forEach((el,i)=>{el.textContent=i<${s}?'⭐':'☆'})">${s<=(state.commentRating||0)?"⭐":"☆"}</button>`).join("")}
+      </div>
+      <textarea id="comment-text" style="width:100%;background:#0a1628;border:1px solid #1e3a5f;border-radius:12px;padding:10px 12px;color:#fff;font-size:13px;font-family:'Inter',sans-serif;resize:none;outline:none;min-height:70px;margin-bottom:10px" placeholder="Escreva sua opinião sobre o evento..."></textarea>
+      <button class="rating-send-btn" onclick="submitComment(${ev.id})">Publicar comentário</button>
+    </div>`:""}
     ${commentsHtml}
     <button class="cta-btn ${state.bought?"bought":""}" onclick="state.bought=!state.bought;render()">${state.bought?"Ingresso Comprado ✓":"Comprar Ingresso"}</button>
   </div></div>`;
@@ -1191,18 +1365,31 @@ function openDetailAI(evId){
   render();
 }
 
-function openEvent(id){state.screen="detail";state.event=id;state.liked=false;state.saved=false;state.bought=false;state.showExtra=false;state.showRating=false;state.userRating=0;state.userRatingDone=!!(userRatings[id]);if(userRatings[id])state.userRating=userRatings[id];render();}
+function openEvent(id){state.screen="detail";state.event=id;state.liked=false;state.saved=false;state.bought=false;state.showExtra=false;state.showRating=false;state.showComment=false;state.commentRating=0;state.userRating=0;state.userRatingDone=!!(userRatings[id]);if(userRatings[id])state.userRating=userRatings[id];render();}
 
 function renderTabBar(){
-  const tabs=[{id:"home",icon:"i-home",label:"Inicio"},{id:"search",icon:"i-search",label:"Buscar"},{id:"calendar",icon:"i-calendar",label:"Agenda"},{id:"profile",icon:"i-user",label:"Perfil"}];
+  const tabs=[{id:"home",icon:"i-home",label:"Início"},{id:"search",icon:"i-search",label:"Buscar"},{id:"calendar",icon:"i-calendar",label:"Agenda"},{id:"profile",icon:"i-user",label:"Perfil"}];
   return `<div class="tab-bar">${tabs.map(t=>`<button class="tab-btn ${state.tab===t.id?"active":""}" onclick="state.tab='${t.id}';render()">${ic(t.icon,22)}<span>${t.label}</span></button>`).join("")}</div>`;
+}
+
+function submitComment(evId){
+  const txt=document.getElementById("comment-text");
+  if(!txt||!txt.value.trim()) return;
+  if(!COMMENTS[evId]) COMMENTS[evId]=[];
+  COMMENTS[evId].unshift({user:"Beto",avatar:"B",time:"agora",rating:state.commentRating||0,text:txt.value.trim(),likes:0});
+  state.showComment=false;state.commentRating=0;
+  render();
 }
 
 function submitPost(){
   const txt=document.getElementById("compose-text");
   if(!txt||!txt.value.trim()) return;
-  FEED_POSTS.unshift({id:Date.now(),user:"Beto",avatar:"B",time:"agora",text:txt.value.trim(),evId:null,likes:0,comments:0});
-  state.showCompose=false;
+  const rating=state.postRating||0;
+  FEED_POSTS.unshift({id:Date.now(),user:"Beto",avatar:"B",time:"agora",text:txt.value.trim(),evId:null,likes:0,comments:0,rating});
+  txt.value="";
+  const charEl=document.getElementById("compose-char2");
+  if(charEl) charEl.textContent="0/280";
+  state.postRating=0;
   render();
 }
 
