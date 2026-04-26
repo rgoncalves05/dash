@@ -1263,8 +1263,10 @@ async function sendAI(){
     });
     const data=await resp.json();
     if(data.error){throw new Error(data.error.message||"Erro na API");}
-    const raw=data.content[0].text;
-    aiConversation.push({role:"assistant",content:raw});
+    // Extrair texto de qualquer bloco — web search retorna múltiplos blocos mistos
+    const raw=(data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n").trim();
+    if(!raw) throw new Error("Resposta vazia");
+    aiConversation.push({role:"assistant",content:data.content});
     const parsed=parseAIResponse(raw);
     aiMessages.pop();
     aiMessages.push({type:"bot",text:parsed.text,events:parsed.events});
