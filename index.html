@@ -14,14 +14,11 @@
   .screen { height:calc(100% - 44px); display:flex; flex-direction:column; position:relative; transition:opacity .3s; overflow:hidden; }
   .screen-scroll { flex:1; overflow-y:auto; display:flex; flex-direction:column; }
   .screen.hidden { display:none; }
-  /* Top logo bar */
-  .top-logo-bar { height:48px; display:flex; align-items:center; justify-content:center; position:relative; flex-shrink:0; padding:0 16px; }
-  .top-logo-center { display:flex; align-items:center; gap:10px; }
+  .top-logo-bar { height:44px; display:flex; align-items:center; padding:0 16px; flex-shrink:0; }
+  .top-logo-center { display:flex; align-items:center; }
   .top-logo-bar .top-logo-text { font-family:'Playfair Display',serif; font-size:24px; font-weight:200; color:#fff; letter-spacing:8px; line-height:1; }
   .top-logo-bar .top-logo-text i { font-style:italic; font-weight:100; }
-  .top-logo-agenda { display:flex; flex-direction:column; justify-content:center; border-left:1px solid #1e3a5f; padding-left:10px; }
-  .top-logo-agenda span { display:block; font-size:7px; font-weight:600; color:#64748b; letter-spacing:3px; text-transform:uppercase; line-height:1.4; }
-  .top-logo-bar .top-tribo-badge { position:absolute; right:16px; display:flex; align-items:center; gap:5px; background:#12233d; border-radius:20px; padding:4px 10px; font-size:12px; cursor:pointer; border:1px solid #1e3a5f; }
+  .top-logo-bar .top-tribo-badge { margin-left:auto; display:flex; align-items:center; gap:5px; background:#12233d; border-radius:20px; padding:4px 10px; font-size:12px; cursor:pointer; border:1px solid #1e3a5f; }
   /* Tab bar */
   .tab-bar { position:absolute; bottom:0; left:0; right:0; height:70px; background:linear-gradient(to top,#0a1628 80%,transparent); display:flex; justify-content:space-around; align-items:center; padding-bottom:8px; z-index:10; }
   .tab-btn { background:none; border:none; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:3px; opacity:.6; transition:all .2s; color:#94a3b8; }
@@ -461,10 +458,7 @@ function render(){
   // Top logo bar — dentro do scroll para rolar com o conteúdo
   const userTriboObj=state.userTribos&&state.userTribos.length?TRIBOS.find(t=>t.id===state.userTribos[0]):null;
   const logoBar=`<div class="top-logo-bar">
-    <div class="top-logo-center">
-      <div class="top-logo-text">DA<i>S</i>H</div>
-      <div class="top-logo-agenda"><span>AGENDA</span><span>CULTURAL</span></div>
-    </div>
+    <div class="top-logo-text">DA<i>S</i>H</div>
     ${userTriboObj?`<div class="top-tribo-badge" onclick="state.screen='tribos';render()" title="${userTriboObj.name}"><span>${userTriboObj.emoji}</span><span style="color:#94a3b8;font-size:11px">${userTriboObj.name}</span></div>`:""}
   </div>`;
   html+=`<div class="screen-scroll">${logoBar}`;
@@ -1110,7 +1104,7 @@ function renderProfile(){
 let aiMessages=[];
 let aiConversation=[];
 
-const DASH_AI_KEY="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";
+const DASH_AI_KEY="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";
 
 const TRIBO_PERSONAS={
   cinephiles:{tone:"Voce e um cinefilo apaixonado. Fala com referencias cinematograficas, menciona diretores e tecnicas. Usa expressoes como 'esse roteiro e genial', 'fotografia impecavel', 'a montagem e primorosa'. Prioriza recomendar FILMES, mas conhece tudo. Trate cada filme como uma obra de arte."},
