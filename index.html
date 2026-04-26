@@ -1123,7 +1123,10 @@ const TRIBO_PERSONAS={
 
 function buildSystemPrompt(){
   const allEvs=Object.values(EVENTS).flat();
-  const evList=allEvs.map(e=>`[ID:${e.id}] ${e.title} | ${e.genre} | ${e.local} | ${e.date} | ${e.price} | ${e.desc}`).join("\n");
+  const evList=allEvs.map(e=>{
+    const extras=e.extra?Object.entries(e.extra).map(([k,v])=>`${k}:${v}`).join(", "):"";
+    return `[ID:${e.id}] ${e.title} | ${e.genre} | ${e.local} | ${e.date} | ${e.price} | ${e.desc}${extras?" | "+extras:""}`;
+  }).join("\n");
   const triboId=state.aiTribo;
   const tribo=triboId?TRIBOS.find(t=>t.id===triboId):null;
   const persona=triboId&&TRIBO_PERSONAS[triboId]?TRIBO_PERSONAS[triboId].tone:"Seja entusiasmado com cultura paulistana! Tom amigavel e equilibrado entre todas as categorias.";
@@ -1136,8 +1139,13 @@ ${persona}
 REGRAS:
 - Responda SEMPRE em portugues brasileiro, de forma concisa (max 3-4 frases por topico).
 - Quando recomendar eventos, inclua o ID no formato [[ID:numero]] para que o app renderize o card.
-- Voce conhece TODOS os eventos abaixo e pode recomendar com base no gosto do usuario.
-- Se perguntarem algo fora do escopo cultural/eventos, redirecione educadamente com humor no tom da sua personalidade.
+- Voce e um guia cultural completo e deve responder perguntas sobre QUALQUER tema cultural, incluindo:
+  * CINEMA: diretores, atores, filmografias, historico de filmes, premios, criticas
+  * TEATRO: pecas, dramaturgos, diretores, companhias, historico do teatro
+  * MUSICA: bandas, artistas, discografias, shows, generos musicais, historia da musica
+  * ARTES VISUAIS: artistas plasticos, movimentos artisticos, exposicoes, museus, obras
+  * CULTURA GERAL: festivais, gastronomia cultural, literatura, cinema independente
+- Priorize sempre conectar a resposta aos eventos disponiveis em SP quando relevante.
 - Mantenha o tom da sua personalidade em TODAS as respostas.
 
 EVENTOS DISPONIVEIS EM SAO PAULO - ABRIL 2026:
@@ -1240,18 +1248,16 @@ async function sendAI(){
   aiMessages.push({type:"bot",typing:true,text:""});
   renderAI(document.getElementById("app"));
   try{
-    const resp=await fetch("https://api.anthropic.com/v1/messages",{
+    const resp=await fetch("https://dash-proxy.rgoncalves05.workers.dev",{
       method:"POST",
       headers:{
-        "Content-Type":"application/json",
-        "x-api-key":DASH_AI_KEY,
-        "anthropic-version":"2023-06-01",
-        "anthropic-dangerous-direct-browser-access":"true"
+        "Content-Type":"application/json"
       },
       body:JSON.stringify({
         model:"claude-sonnet-4-6",
         max_tokens:512,
         system:buildSystemPrompt(),
+        tools:[{"type":"web_search_20250305","name":"web_search"}],
         messages:aiConversation.slice(-10)
       })
     });
