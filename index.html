@@ -1123,10 +1123,7 @@ const TRIBO_PERSONAS={
 
 function buildSystemPrompt(){
   const allEvs=Object.values(EVENTS).flat();
-  const evList=allEvs.map(e=>{
-    const extras=e.extra?Object.entries(e.extra).map(([k,v])=>`${k}:${v}`).join(", "):"";
-    return `[ID:${e.id}] ${e.title} | ${e.genre} | ${e.local} | ${e.date} | ${e.price} | ${e.desc}${extras?" | "+extras:""}`;
-  }).join("\n");
+  const evList=allEvs.map(e=>`[${e.id}] ${e.title} | ${e.genre} | ${e.local} | ${e.date} | ${e.price}${e.extra&&e.extra.diretor?" | dir:"+e.extra.diretor:""}${e.extra&&e.extra.elenco?" | elenco:"+e.extra.elenco:""}${e.extra&&e.extra.artistas?" | artistas:"+e.extra.artistas:""}${e.extra&&e.extra.autor?" | autor:"+e.extra.autor:""}`).join("\n");
   const triboId=state.aiTribo;
   const tribo=triboId?TRIBOS.find(t=>t.id===triboId):null;
   const persona=triboId&&TRIBO_PERSONAS[triboId]?TRIBO_PERSONAS[triboId].tone:"Seja entusiasmado com cultura paulistana! Tom amigavel e equilibrado entre todas as categorias.";
@@ -1258,7 +1255,7 @@ async function sendAI(){
         max_tokens:512,
         system:buildSystemPrompt(),
         tools:[{"type":"web_search_20250305","name":"web_search"}],
-        messages:aiConversation.slice(-10)
+        messages:aiConversation.slice(-6)
       })
     });
     const data=await resp.json();
