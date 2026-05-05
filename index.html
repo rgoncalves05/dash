@@ -580,18 +580,14 @@ function renderHome(){
     let feedhtml=feedPosts.map(p=>{
       const ev=Object.values(EVENTS).flat().find(e=>e.id===p.evId);
       const stars=p.rating?[1,2,3,4,5].map(s=>s<=p.rating?"⭐":"☆").join(""):"";
-      const prof=USER_PROFILES[p.user];
-      const isFollowing=prof&&following.has(prof.id);
       const isOwnPost=p.user==="Beto";
       return `<div style="background:#12233d;border-radius:16px;padding:14px;margin-bottom:10px">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-          <div onclick="${prof?`openUserProfile('${p.user.replace(/'/g,"\\'")}')`:''}
-" style="width:36px;height:36px;border-radius:50%;background:#1e3a5f;display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden;cursor:${prof?'pointer':'default'}">${p.avatarIsPhoto?`<img src="${p.avatar}" style="width:100%;height:100%;object-fit:cover">`:p.avatar}</div>
+          ${userAvatarHtml(p.user,36)}
           <div style="flex:1">
-            <div style="display:flex;align-items:center;gap:8px">
-              <span onclick="${prof?`openUserProfile('${p.user.replace(/'/g,"\\'")}')`:''}
-" style="font-size:14px;font-weight:600;color:#fff;cursor:${prof?'pointer':'default'}">${p.user}</span>
-              ${!isOwnPost&&prof?`<button onclick="event.stopPropagation();(function(){if(following.has('${prof.id}')){following.delete('${prof.id}');}else{following.add('${prof.id}');}render();})()" style="padding:2px 10px;border-radius:10px;border:1px solid ${isFollowing?'#3b82f6':'#1e3a5f'};background:${isFollowing?'#3b82f6':'transparent'};color:${isFollowing?'#fff':'#64748b'};font-size:10px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif">${isFollowing?'Seguindo':'+ Seguir'}</button>`:''}
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <span style="font-size:14px;font-weight:600;color:#fff;cursor:pointer" onclick="openUserProfile('${p.user}')">${p.user}</span>
+              ${followBtn(p.user)}
             </div>
             <div style="font-size:11px;color:#64748b">${p.time}</div>
           </div>
@@ -818,8 +814,14 @@ function renderTriboDetail(app){
       <div style="font-size:11px;font-weight:700;color:${t.color};letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">Feed da tribo</div>
       ${posts.map(p=>`<div style="background:#12233d;border-radius:14px;padding:12px;margin-bottom:8px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-          <div style="width:30px;height:30px;border-radius:50%;background:#1e3a5f;display:flex;align-items:center;justify-content:center;font-size:15px;overflow:hidden">${p.avatarIsPhoto?`<img src="${p.avatar}" style="width:100%;height:100%;object-fit:cover">`:p.avatar}</div>
-          <div><div style="font-size:13px;font-weight:600;color:#fff">${p.user}</div><div style="font-size:10px;color:#64748b">${p.time}</div></div>
+          <div style="width:30px;height:30px;border-radius:50%;background:#1e3a5f;display:flex;align-items:center;justify-content:center;font-size:15px;overflow:hidden;cursor:pointer" onclick="openUserProfile('${p.user}')">${p.avatarIsPhoto?`<img src="${p.avatar}" style="width:100%;height:100%;object-fit:cover">`:p.avatar}</div>
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:6px">
+              <div style="font-size:13px;font-weight:600;color:#fff;cursor:pointer" onclick="openUserProfile('${p.user}')">${p.user}</div>
+              ${followBtn(p.user)}
+            </div>
+            <div style="font-size:10px;color:#64748b">${p.time}</div>
+          </div>
         </div>
         <p style="font-size:12px;color:#cbd5e1;line-height:1.5;margin:0">${p.text}</p>
       </div>`).join("")}
@@ -1346,22 +1348,19 @@ function renderDetail(app){
   const comments=COMMENTS[ev.id]||[];
   let commentsHtml=comments.length?`<div class="comments-section"><div class="comments-title">Comentarios <span>(${comments.length})</span></div>
   ${comments.map(c=>{
-    const cprof=USER_PROFILES[c.user];
-    const cFollowing=cprof&&following.has(cprof.id);
     const isOwn=c.user==="Beto";
-    return `<div class="comment-card"><div class="comment-header"><div class="comment-avatar" style="overflow:hidden;cursor:${cprof?'pointer':'default'}" onclick="${cprof?`openUserProfile('${c.user}')`:''}">
-      ${c.avatarIsPhoto?`<img src="${c.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:c.avatar}
-    </div>
-    <div style="flex:1">
-      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-        <span class="comment-user" style="cursor:${cprof?'pointer':'default'}" onclick="${cprof?`openUserProfile('${c.user}')`:''}">
-          ${c.user}
-        </span>
-        ${!isOwn&&cprof?`<button onclick="(function(){if(following.has('${cprof.id}')){following.delete('${cprof.id}');}else{following.add('${cprof.id}');}render();})()" style="padding:1px 8px;border-radius:8px;border:1px solid ${cFollowing?'#3b82f6':'#1e3a5f'};background:${cFollowing?'#3b82f6':'transparent'};color:${cFollowing?'#fff':'#64748b'};font-size:9px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif">${cFollowing?'Seguindo':'+ Seguir'}</button>`:''}
+    return `<div class="comment-card"><div class="comment-header">
+      <div class="comment-avatar" style="overflow:hidden;cursor:pointer" onclick="openUserProfile('${c.user}')">
+        ${c.avatarIsPhoto?`<img src="${c.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:c.avatar}
       </div>
-      <span class="comment-time">${c.time}</span>
-    </div>
-    ${c.rating?`<div style="display:flex;align-items:center;gap:3px;background:#0a1628;padding:4px 8px;border-radius:8px;border:1px solid #f59e0b33"><span style="font-size:11px;color:#f59e0b">★</span><span style="font-size:12px;color:#f59e0b;font-weight:700">${c.rating}</span></div>`:""}
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <span class="comment-user" style="cursor:pointer" onclick="openUserProfile('${c.user}')">${c.user}</span>
+          ${followBtn(c.user)}
+        </div>
+        <span class="comment-time">${c.time}</span>
+      </div>
+      ${c.rating?`<div style="display:flex;align-items:center;gap:3px;background:#0a1628;padding:4px 8px;border-radius:8px;border:1px solid #f59e0b33"><span style="font-size:11px;color:#f59e0b">★</span><span style="font-size:12px;color:#f59e0b;font-weight:700">${c.rating}</span></div>`:""}
     </div><p class="comment-text">${c.text}</p><div class="comment-likes">${ic("i-heart",12)} ${c.likes}</div></div>`;
   }).join("")}</div>`:"";
 
@@ -1407,7 +1406,7 @@ function renderDetail(app){
     ${ratingHtml}
     <div class="info-cards">
       <div class="info-card"><span style="color:#3b82f6">${ic("i-calendar",16)}</span><span>${ev.date}</span></div>
-      <div class="info-card"><span style="color:#ef4444">${ic("i-map",16)}</span><span>${ev.local}</span></div>
+      <div class="info-card" style="cursor:pointer" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ev.local+' '+ev.address||ev.local+' São Paulo')}','_blank')"><span style="color:#ef4444">${ic("i-map",16)}</span><span style="text-decoration:underline;text-decoration-color:#ef4444">${ev.local}</span><span style="font-size:10px;color:#ef4444;margin-left:4px">↗</span></div>
       <div class="info-card"><span style="color:#22c55e">${ic("i-dollar",16)}</span><span>${ev.price}</span></div>
     </div>
     <p class="detail-desc">${ev.desc}</p>
@@ -1596,6 +1595,19 @@ function toggleFollow(userId, userName, btn){
   render(); // atualiza feed "Seguindo"
   // Reabrir o mini perfil para manter o overlay
   setTimeout(()=>openUserProfile(userName),10);
+}
+
+function followBtn(userName, size="sm"){
+  const prof=USER_PROFILES[userName];
+  if(!prof||userName==="Beto") return "";
+  const isF=following.has(prof.id);
+  const pad=size==="sm"?"padding:1px 8px;font-size:9px":"padding:3px 12px;font-size:11px";
+  return `<button onclick="event.stopPropagation();(function(){if(following.has('${prof.id}')){following.delete('${prof.id}');}else{following.add('${prof.id}');}render();})()" style="${pad};border-radius:8px;border:1px solid ${isF?'#3b82f6':'#1e3a5f'};background:${isF?'#3b82f6':'transparent'};color:${isF?'#fff':'#64748b'};font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap">${isF?'Seguindo':'+ Seguir'}</button>`;
+}
+
+function userAvatarHtml(user, size=36){
+  const prof=USER_PROFILES[user];
+  return `<div onclick="${prof?`openUserProfile('${user}')`:'return false'}" style="width:${size}px;height:${size}px;border-radius:50%;background:#1e3a5f;display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.45)}px;overflow:hidden;flex-shrink:0;cursor:${prof?'pointer':'default'}">${prof?prof.avatar:'B'}</div>`;
 }
 
 function submitComment(evId){
