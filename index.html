@@ -1406,7 +1406,7 @@ function renderDetail(app){
     ${ratingHtml}
     <div class="info-cards">
       <div class="info-card"><span style="color:#3b82f6">${ic("i-calendar",16)}</span><span>${ev.date}</span></div>
-      <div class="info-card" style="cursor:pointer" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ev.local+' '+ev.address||ev.local+' São Paulo')}','_blank')"><span style="color:#ef4444">${ic("i-map",16)}</span><span style="text-decoration:underline;text-decoration-color:#ef4444">${ev.local}</span><span style="font-size:10px;color:#ef4444;margin-left:4px">↗</span></div>
+      <div class="info-card" style="cursor:pointer" onclick="window.open('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent('${ev.local} São Paulo'),'_blank')"><span style="color:#ef4444">${ic("i-map",16)}</span><span style="text-decoration:underline;text-decoration-color:#ef4444">${ev.local}</span><span style="font-size:10px;color:#ef4444;margin-left:4px">↗</span></div>
       <div class="info-card"><span style="color:#22c55e">${ic("i-dollar",16)}</span><span>${ev.price}</span></div>
     </div>
     <p class="detail-desc">${ev.desc}</p>
