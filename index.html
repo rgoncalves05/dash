@@ -95,6 +95,12 @@
   .detail-ai-btn:hover { background:linear-gradient(135deg,rgba(59,130,246,.25),rgba(139,92,246,.25)); }
   /* Tribo selecionavel */
   .tribo-join-btn { padding:7px 12px; border-radius:20px; border:1px solid; font-size:11px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; transition:all .2s; }
+  /* Mini perfil de usuário */
+  .user-profile-overlay { position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:200; display:flex; align-items:flex-end; justify-content:center; animation:fadeIn .2s ease; }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+  .user-profile-card { background:#0d1f3c; border-radius:24px 24px 0 0; padding:20px 20px 36px; width:100%; max-width:430px; border-top:1px solid #1e3a5f; animation:slideUp .25s ease; }
+  .follow-btn { padding:10px 24px; border-radius:20px; border:2px solid #3b82f6; background:transparent; color:#3b82f6; font-size:13px; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif; transition:all .2s; }
+  .follow-btn.following { background:#3b82f6; color:#fff; }
   /* Novo Post */
   .new-post-btn { display:flex; align-items:center; gap:10px; background:#12233d; border-radius:16px; padding:12px 14px; margin:0 16px 10px; cursor:pointer; border:1px dashed #1e3a5f; transition:all .2s; }
   .new-post-btn:hover { border-color:#3b82f6; }
@@ -145,7 +151,11 @@
   .timeline-card .t-title { font-size:14px; font-weight:600; color:#fff; }
   .timeline-card .t-local { font-size:11px; color:#94a3b8; display:flex; align-items:center; gap:4px; margin-top:3px; }
   /* Profile */
-  .profile-avatar { width:80px; height:80px; border-radius:40px; background:linear-gradient(135deg,#3b82f6,#8b5cf6); display:flex; align-items:center; justify-content:center; font-size:36px; color:#fff; margin-bottom:12px; }
+  .profile-avatar { width:80px; height:80px; border-radius:40px; background:linear-gradient(135deg,#3b82f6,#8b5cf6); display:flex; align-items:center; justify-content:center; font-size:36px; color:#fff; margin-bottom:12px; overflow:hidden; position:relative; cursor:pointer; }
+  .profile-avatar img { width:100%; height:100%; object-fit:cover; }
+  .profile-avatar-wrap { position:relative; display:inline-block; margin-bottom:12px; cursor:pointer; }
+  .profile-avatar-wrap .cam-badge { position:absolute; bottom:2px; right:2px; width:24px; height:24px; background:#3b82f6; border-radius:50%; border:2px solid #0a1628; display:flex; align-items:center; justify-content:center; font-size:12px; }
+  .avatar-mini { width:100%; height:100%; object-fit:cover; border-radius:50%; }
   .profile-stats { display:flex; gap:10px; margin-bottom:20px; }
   .stat-box { flex:1; background:#12233d; border-radius:16px; padding:16px 8px; text-align:center; }
   .stat-value { font-size:20px; font-weight:700; color:#3b82f6; }
@@ -433,8 +443,8 @@ const EVENTS={filmes:[
 
 const COMMENTS={1:[{user:"Lucas",avatar:"🧑‍💻",text:"Paul Dano brilhante. Filme que faz pensar sobre propaganda e poder.",rating:5,likes:34,time:"1h"},{user:"Mariana",avatar:"👩‍🦰",text:"Jude Law como Putin e perturbador. Assayas dirigiu com mao firme.",rating:4,likes:21,time:"3h"}],2:[{user:"Camila",avatar:"👗",text:"Meryl Streep VOLTOU. Miranda Priestly continua iconica!",rating:5,likes:145,time:"2h"},{user:"Rafael",avatar:"🎥",text:"Anne Hathaway e Emily Blunt juntas de novo. Figurino impecavel.",rating:5,likes:98,time:"4h"}],3:[{user:"Fernanda",avatar:"⚽",text:"Chorei do comeco ao fim. Zico e gigante demais.",rating:5,likes:156,time:"30min"},{user:"Gustavo",avatar:"🔴",text:"Imagens rarissimas. Todo amante de futebol precisa ver.",rating:5,likes:127,time:"1d"}],4:[{user:"Pedro",avatar:"🍄",text:"Mario Galaxy no cinema e pura nostalgia! Meu filho amou.",rating:5,likes:87,time:"2h"},{user:"Julia",avatar:"🌟",text:"Animacao linda. Cada galaxia e um espetaculo visual.",rating:5,likes:64,time:"5h"}],5:[{user:"Marcos",avatar:"😱",text:"Tenso do comeco ao fim. Nao consegui dormir depois.",rating:4,likes:43,time:"3h"},{user:"Ana",avatar:"🎬",text:"Melhor capitulo da trilogia. Final surpreendente.",rating:4,likes:31,time:"1d"}],7:[{user:"Renata",avatar:"🎭",text:"Pinter e sempre atual. Montagem brasileira corajosa.",rating:5,likes:52,time:"2h"}],8:[{user:"Simone",avatar:"😂",text:"Ri do comeco ao fim! Barbixas sao genios.",rating:5,likes:94,time:"4h"}],12:[{user:"Marina",avatar:"🖼️",text:"Renoir ao vivo no MASP e experiencia unica!",rating:5,likes:63,time:"2h"}],14:[{user:"Patricia",avatar:"🎨",text:"Tayou ocupou a Pinacoteca inteira! Instalacoes provocadoras.",rating:5,likes:55,time:"1h"}],18:[{user:"Ricardo",avatar:"🔥",text:"MORUMBI INTEIRO CANTANDO BLINDING LIGHTS! Experiencia de vida!",rating:5,likes:234,time:"3h"},{user:"Fabiana",avatar:"🎶",text:"Producao visual insana. Melhor show que ja fui.",rating:5,likes:189,time:"5h"}],6:[{user:"Nicolas",avatar:"⚖️",text:"Nicolas Prattes surpreendeu demais. Atuacao madura e envolvente.",rating:4,likes:41,time:"3h"},{user:"Carla",avatar:"🙏",text:"Filme que faz refletir sobre fe e justica. Saí do cinema em silencio.",rating:5,likes:37,time:"6h"}],9:[{user:"Leticia",avatar:"✨",text:"Musical lindo! As musicas ficam na cabeca por dias.",rating:5,likes:48,time:"2h"},{user:"Bruno",avatar:"🎵",text:"Producao impecavel no Teatro BTG. Cenario e figurino de primeira.",rating:4,likes:33,time:"1d"}],10:[{user:"Andre",avatar:"🧠",text:"Teatro experimental de verdade. Te faz questionar o que e real e o que e memoria.",rating:5,likes:29,time:"4h"},{user:"Daniela",avatar:"💭",text:"CCBB sempre entrega. Peca forte e provocadora.",rating:4,likes:22,time:"1d"}],11:[{user:"Sofia",avatar:"🌍",text:"Historias reais de migracao contadas com sensibilidade. Chorei.",rating:5,likes:38,time:"5h"},{user:"Rodrigo",avatar:"🎭",text:"Sesc Belenzinho com programacao incrivel. Travessia e imperdivel.",rating:5,likes:27,time:"2d"}],13:[{user:"Isabela",avatar:"🖼️",text:"Sandra Gamarra questiona tudo que achamos que sabemos. Obra poderosa.",rating:5,likes:44,time:"3h"},{user:"Felipe",avatar:"🌎",text:"80 obras e cada uma conta uma historia diferente sobre colonialismo.",rating:4,likes:31,time:"1d"}],15:[{user:"Marcos",avatar:"🎨",text:"SP-Arte e sempre o evento do ano. Galerias incriveis de todo o mundo.",rating:5,likes:76,time:"2h"},{user:"Juliana",avatar:"💰",text:"Vi pecas que nunca imaginei ver ao vivo. Vale cada centavo do ingresso.",rating:5,likes:58,time:"8h"}],16:[{user:"Renata",avatar:"🗿",text:"Cristina Salgado no Octogono da Pinacoteca e de tirar o folego.",rating:5,likes:35,time:"4h"},{user:"Paulo",avatar:"🏛️",text:"Maior instalacao da artista. O espaco potencializa cada escultura.",rating:4,likes:28,time:"2d"}],17:[{user:"Sandra",avatar:"💃",text:"Roxette sem Marie e diferente mas Per Gessle manteve a magia viva.",rating:4,likes:67,time:"3h"},{user:"Eduardo",avatar:"🎸",text:"The Look, Listen to Your Heart... cada musica uma emocao diferente.",rating:5,likes:54,time:"6h"}],19:[{user:"Gabriel",avatar:"🎶",text:"Ho Hey ao vivo e magico. Show intimista como deve ser.",rating:5,likes:42,time:"2h"},{user:"Camila",avatar:"🌾",text:"Lumineers transportam voce pra outro mundo. Folk rock na veia.",rating:5,likes:38,time:"1d"}],20:[{user:"Vitor",avatar:"😎",text:"Mac DeMarco e pura energia caotica. Duas noites e pouco!",rating:4,likes:51,time:"4h"},{user:"Laura",avatar:"🎸",text:"Audio SP lotado. Clima descontraido e som impecavel.",rating:5,likes:39,time:"1d"}],21:[{user:"Thiago",avatar:"🤘",text:"GUNS NO ALLIANZ! Paradise City com 45 mil pessoas!",rating:5,likes:312,time:"2h"}],22:[{user:"Yumi",avatar:"💜",text:"Jackson Wang e um performer nato. Coreografia e energia insanas!",rating:5,likes:89,time:"3h"},{user:"Diego",avatar:"🔥",text:"Producao visual impressionante. K-Pop em outro nivel no Brasil.",rating:5,likes:72,time:"5h"}]};
 
-const CATEGORIES=[{id:"filmes",label:"Filmes",icon:"i-film",color:"#8b5cf6"},{id:"teatro",label:"Teatro",icon:"i-theater",color:"#f59e0b"},{id:"exposicoes",label:"Exposicoes",icon:"i-palette",color:"#22c55e"},{id:"shows",label:"Shows",icon:"i-music",color:"#ef4444"},{id:"feed",label:"Feed",icon:"i-rss",color:"#3b82f6"}];
-const SUBCATEGORIES={filmes:["Acao","Aventura","Classicos","Comedia","Documentario","Drama","Sci-fi"],teatro:["Musical","Drama","Comedia","Experimental"],exposicoes:["Arte Moderna","Fotografia","Escultura","Instalacao"],shows:["Rock","Pop","MPB","Eletronica","Jazz","K-Pop"],feed:["Para Voce","Discussoes","Novidades"]};
+const CATEGORIES=[{id:"filmes",label:"Cinema",icon:"i-film",color:"#8b5cf6"},{id:"teatro",label:"Teatro",icon:"i-theater",color:"#f59e0b"},{id:"exposicoes",label:"Exposições",icon:"i-palette",color:"#22c55e"},{id:"shows",label:"Música",icon:"i-music",color:"#ef4444"},{id:"feed",label:"Feed",icon:"i-rss",color:"#3b82f6"}];
+const SUBCATEGORIES={filmes:["Ação","Aventura","Animação","Comédia","Drama","Documentário","Western","Horror","Romance","SciFi","Suspense","Thriller"],teatro:["Comédia","Drama","Musical","Ópera","Dança","Experimental","Infantil","Monólogo","Stand-up","Circo"],exposicoes:["Arte Contemporânea","Arte Moderna","Design","Escultura","Fotografia","Ilustração","Instalação","Moda","Arquitetura","Feira de Arte"],shows:["Blues","Clássica","Eletrônica","Funk","Hip-hop","Jazz","K-Pop","MPB","Pop","Rock","Samba & Pagode","Sertanejo"],feed:["Para Você","Novidades","Mais Curtidos","Seguindo","Minha Tribo"]};
 
 const FEED_POSTS=[
   {id:101,user:"Camila Rocha",avatar:"👗",time:"2h",text:"Meryl Streep VOLTOU! Acabei de sair do Diabo Veste Prada 2 e estou sem palavras. Miranda Priestly continua iconica.",evId:2,likes:145,comments:23},
@@ -448,8 +458,21 @@ const FEED_POSTS=[
 
 const ic=(id,w=16)=>`<svg width="${w}" height="${w}" style="flex-shrink:0;color:#94a3b8"><use href="#${id}"/></svg>`;
 
-let state={screen:"login",tab:"home",category:"filmes",subcat:0,event:null,liked:false,saved:false,bought:false,activeTribo:null,aiTribo:null,showExtra:false,showRating:false,userRating:0,userRatingDone:false,userTribos:[],showCompose:false,showComment:false,commentRating:0};
+let state={screen:"login",tab:"home",category:"filmes",subcat:0,event:null,liked:false,saved:false,bought:false,activeTribo:null,aiTribo:null,showExtra:false,showRating:false,userRating:0,userRatingDone:false,userTribos:[],showCompose:false,showComment:false,commentRating:0,followedEvents:new Set()};
 let userRatings={};
+let userAvatar=null; // base64 da foto do usuário
+let following=new Set();
+
+const USER_PROFILES={
+  "Camila Rocha":  {id:"camila",  avatar:"👗", tribo:"🎬 Cinephiles",  eventos:47, posts:23, bio:"Cinéfila apaixonada por moda e cinema de autor."},
+  "Thiago Santos": {id:"thiago",  avatar:"🤘", tribo:"🎸 Rockeiros",   eventos:89, posts:67, bio:"Rock n roll never dies. Monsters of Rock todo ano."},
+  "Marina Costa":  {id:"marina",  avatar:"🖼️", tribo:"🎨 Art Lovers",  eventos:34, posts:12, bio:"Arte contemporânea e exposições são meu combustível."},
+  "Fernanda Lima": {id:"fernanda",avatar:"⚽", tribo:"🎬 Cinephiles",  eventos:28, posts:34, bio:"Documentários esportivos e cultura brasileira."},
+  "Ricardo Alves": {id:"ricardo", avatar:"🔥", tribo:"🎵 Festivais",   eventos:112,posts:89, bio:"Show ao vivo é religião. The Weeknd mudou minha vida."},
+  "Patricia Duarte":{id:"patricia",avatar:"🎨",tribo:"🎨 Art Lovers",  eventos:56, posts:8,  bio:"Arte que provoca e incomoda. Pinacoteca é minha casa."},
+  "Pedro Henrique":{id:"pedro",   avatar:"🍄", tribo:"🎬 Cinephiles",  eventos:19, posts:15, bio:"Pai cinéfilo levando o filho pra amar o cinema."},
+};
+
 
 function render(){
   const app=document.getElementById("app");
@@ -546,13 +569,32 @@ function renderHome(){
   let cats=CATEGORIES.map(c=>`<button class="cat-chip ${state.category===c.id?"active":""}" title="${c.label}" style="--cat-color:${c.color};--cat-color-bg:${c.color}22" onclick="state.category='${c.id}';state.subcat=0;state.activeTribo=null;render()">${ic(c.icon,18)}<span class="cat-label">${c.label}</span></button>`).join("");
   let subhtml=subs.map((s,i)=>`<button class="sub-chip ${state.subcat===i?"active":""}" onclick="state.subcat=${i};render()">${s}</button>`).join("");
   if(state.category==="feed"){
-    let feedhtml=FEED_POSTS.map(p=>{
+    const subcat=SUBCATEGORIES.feed[state.subcat]||"Para Você";
+    let feedPosts=FEED_POSTS;
+    if(subcat==="Seguindo"){
+      feedPosts=FEED_POSTS.filter(p=>{
+        const prof=USER_PROFILES[p.user];
+        return prof && following.has(prof.id);
+      });
+    }
+    let feedhtml=feedPosts.map(p=>{
       const ev=Object.values(EVENTS).flat().find(e=>e.id===p.evId);
       const stars=p.rating?[1,2,3,4,5].map(s=>s<=p.rating?"⭐":"☆").join(""):"";
+      const prof=USER_PROFILES[p.user];
+      const isFollowing=prof&&following.has(prof.id);
+      const isOwnPost=p.user==="Beto";
       return `<div style="background:#12233d;border-radius:16px;padding:14px;margin-bottom:10px">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-          <div style="width:36px;height:36px;border-radius:50%;background:#1e3a5f;display:flex;align-items:center;justify-content:center;font-size:18px">${p.avatar}</div>
-          <div style="flex:1"><div style="font-size:14px;font-weight:600;color:#fff">${p.user}</div><div style="font-size:11px;color:#64748b">${p.time}</div></div>
+          <div onclick="${prof?`openUserProfile('${p.user.replace(/'/g,"\\'")}')`:''}
+" style="width:36px;height:36px;border-radius:50%;background:#1e3a5f;display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden;cursor:${prof?'pointer':'default'}">${p.avatarIsPhoto?`<img src="${p.avatar}" style="width:100%;height:100%;object-fit:cover">`:p.avatar}</div>
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span onclick="${prof?`openUserProfile('${p.user.replace(/'/g,"\\'")}')`:''}
+" style="font-size:14px;font-weight:600;color:#fff;cursor:${prof?'pointer':'default'}">${p.user}</span>
+              ${!isOwnPost&&prof?`<button onclick="event.stopPropagation();(function(){if(following.has('${prof.id}')){following.delete('${prof.id}');}else{following.add('${prof.id}');}render();})()" style="padding:2px 10px;border-radius:10px;border:1px solid ${isFollowing?'#3b82f6':'#1e3a5f'};background:${isFollowing?'#3b82f6':'transparent'};color:${isFollowing?'#fff':'#64748b'};font-size:10px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif">${isFollowing?'Seguindo':'+ Seguir'}</button>`:''}
+            </div>
+            <div style="font-size:11px;color:#64748b">${p.time}</div>
+          </div>
           ${stars?`<div style="font-size:12px;letter-spacing:1px">${stars}</div>`:""}
         </div>
         <p style="font-size:13px;color:#cbd5e1;line-height:1.5;margin-bottom:10px">${p.text}</p>
@@ -583,7 +625,7 @@ function renderHome(){
             </div>
           </div>`
         : `<div style="display:flex;align-items:center;gap:10px;background:#12233d;border-radius:12px;padding:8px 12px;border:1px solid #1e3a5f;cursor:pointer" onclick="state.showCompose=true;render()">
-            <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0">B</div>
+            <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0;overflow:hidden">${userAvatar?`<img src="${userAvatar}" style="width:100%;height:100%;object-fit:cover">`:"B"}</div>
             <span style="font-size:12px;color:#475569;flex:1">No que você está pensando?</span>
             <div style="background:#3b82f6;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;color:#fff">Postar</div>
           </div>`
@@ -776,7 +818,7 @@ function renderTriboDetail(app){
       <div style="font-size:11px;font-weight:700;color:${t.color};letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">Feed da tribo</div>
       ${posts.map(p=>`<div style="background:#12233d;border-radius:14px;padding:12px;margin-bottom:8px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-          <div style="width:30px;height:30px;border-radius:50%;background:#1e3a5f;display:flex;align-items:center;justify-content:center;font-size:15px">${p.avatar}</div>
+          <div style="width:30px;height:30px;border-radius:50%;background:#1e3a5f;display:flex;align-items:center;justify-content:center;font-size:15px;overflow:hidden">${p.avatarIsPhoto?`<img src="${p.avatar}" style="width:100%;height:100%;object-fit:cover">`:p.avatar}</div>
           <div><div style="font-size:13px;font-weight:600;color:#fff">${p.user}</div><div style="font-size:10px;color:#64748b">${p.time}</div></div>
         </div>
         <p style="font-size:12px;color:#cbd5e1;line-height:1.5;margin:0">${p.text}</p>
@@ -1094,8 +1136,24 @@ function renderProfile(){
   const prefs=[{t:"Cinema",c:"filmes"},{t:"Teatro",c:"teatro"},{t:"Rock",c:"shows"},{t:"Arte Moderna",c:"exposicoes"},{t:"MPB",c:"shows"},{t:"Documentarios",c:"filmes"}];
   return `<div style="overflow:auto;padding:0 16px 80px;flex:1">
   <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0"><h1 style="font-size:22px;font-weight:700;color:#fff">Perfil</h1><button class="header-bell" onclick="state.screen='settings';render()">${ic("i-settings",18)}</button></div>
-  <div style="display:flex;flex-direction:column;align-items:center;padding:20px 0"><div class="profile-avatar">B</div><h2 style="font-size:18px;font-weight:700;color:#fff">Beto</h2><p style="font-size:13px;color:#94a3b8">Amante de cultura e tecnologia</p></div>
-  <div class="profile-stats">${[{v:"23",l:"Eventos"},{v:"156",l:"Curtidas"},{v:"12",l:"Salvos"}].map(s=>`<div class="stat-box"><div class="stat-value">${s.v}</div><div class="stat-label">${s.l}</div></div>`).join("")}</div>
+  <div style="display:flex;flex-direction:column;align-items:center;padding:20px 0">
+    <div class="profile-avatar-wrap" onclick="document.getElementById('avatar-options').style.display=document.getElementById('avatar-options').style.display==='flex'?'none':'flex'">
+      <div class="profile-avatar">
+        ${userAvatar?`<img src="${userAvatar}" class="avatar-mini">`:`B`}
+      </div>
+      <div class="cam-badge">📷</div>
+    </div>
+    <div id="avatar-options" style="display:none;flex-direction:column;gap:8px;background:#12233d;border-radius:14px;padding:12px 16px;border:1px solid #1e3a5f;margin-bottom:12px;width:200px">
+      <div style="font-size:12px;color:#64748b;text-align:center;margin-bottom:4px">Alterar foto de perfil</div>
+      <button onclick="openCamera()" style="display:flex;align-items:center;gap:8px;background:#1e3a5f;border:none;border-radius:10px;padding:10px 12px;color:#fff;font-size:13px;cursor:pointer;font-family:'Inter',sans-serif;width:100%">📸 Tirar selfie</button>
+      <button onclick="document.getElementById('avatar-upload').click()" style="display:flex;align-items:center;gap:8px;background:#1e3a5f;border:none;border-radius:10px;padding:10px 12px;color:#fff;font-size:13px;cursor:pointer;font-family:'Inter',sans-serif;width:100%">🖼️ Carregar foto</button>
+      ${userAvatar?`<button onclick="userAvatar=null;render()" style="display:flex;align-items:center;gap:8px;background:transparent;border:1px solid #ef444455;border-radius:10px;padding:8px 12px;color:#ef4444;font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;width:100%">🗑️ Remover foto</button>`:""}
+    </div>
+    <input type="file" id="avatar-upload" accept="image/*" style="display:none" onchange="handleAvatarUpload(event)">
+    <h2 style="font-size:18px;font-weight:700;color:#fff">Beto</h2>
+    <p style="font-size:13px;color:#94a3b8">Amante de cultura e tecnologia</p>
+  </div>
+  <div class="profile-stats">${[{v:"23",l:"Eventos"},{v:following.size,l:"Seguindo"},{v:"12",l:"Salvos"}].map(s=>`<div class="stat-box"><div class="stat-value">${s.v}</div><div class="stat-label">${s.l}</div></div>`).join("")}</div>
   <div onclick="state.screen='stats';render()" style="background:linear-gradient(135deg,rgba(245,158,11,.12),rgba(139,92,246,.12));border:1px solid rgba(245,158,11,.25);border-radius:16px;padding:14px 16px;margin-bottom:16px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:all .2s">
     <div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#f59e0b,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:20px">🏆</div>
     <div style="flex:1"><div style="font-size:14px;font-weight:700;color:#fff">Meus Stats & Conquistas</div><div style="font-size:11px;color:#94a3b8">Nivel 7 · 2.340 XP · 8 badges</div></div>
@@ -1287,7 +1345,25 @@ function renderDetail(app){
   if(!ev) return;
   const comments=COMMENTS[ev.id]||[];
   let commentsHtml=comments.length?`<div class="comments-section"><div class="comments-title">Comentarios <span>(${comments.length})</span></div>
-  ${comments.map(c=>`<div class="comment-card"><div class="comment-header"><div class="comment-avatar">${c.avatar}</div><div><span class="comment-user">${c.user}</span><span class="comment-time">${c.time}</span></div>${c.rating?`<div style="display:flex;align-items:center;gap:3px;background:#0a1628;padding:4px 8px;border-radius:8px;margin-left:auto;border:1px solid #f59e0b33"><span style="font-size:11px;color:#f59e0b">★</span><span style="font-size:12px;color:#f59e0b;font-weight:700">${c.rating}</span></div>`:""}</div><p class="comment-text">${c.text}</p><div class="comment-likes">${ic("i-heart",12)} ${c.likes}</div></div>`).join("")}</div>`:"";
+  ${comments.map(c=>{
+    const cprof=USER_PROFILES[c.user];
+    const cFollowing=cprof&&following.has(cprof.id);
+    const isOwn=c.user==="Beto";
+    return `<div class="comment-card"><div class="comment-header"><div class="comment-avatar" style="overflow:hidden;cursor:${cprof?'pointer':'default'}" onclick="${cprof?`openUserProfile('${c.user}')`:''}">
+      ${c.avatarIsPhoto?`<img src="${c.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:c.avatar}
+    </div>
+    <div style="flex:1">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        <span class="comment-user" style="cursor:${cprof?'pointer':'default'}" onclick="${cprof?`openUserProfile('${c.user}')`:''}">
+          ${c.user}
+        </span>
+        ${!isOwn&&cprof?`<button onclick="(function(){if(following.has('${cprof.id}')){following.delete('${cprof.id}');}else{following.add('${cprof.id}');}render();})()" style="padding:1px 8px;border-radius:8px;border:1px solid ${cFollowing?'#3b82f6':'#1e3a5f'};background:${cFollowing?'#3b82f6':'transparent'};color:${cFollowing?'#fff':'#64748b'};font-size:9px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif">${cFollowing?'Seguindo':'+ Seguir'}</button>`:''}
+      </div>
+      <span class="comment-time">${c.time}</span>
+    </div>
+    ${c.rating?`<div style="display:flex;align-items:center;gap:3px;background:#0a1628;padding:4px 8px;border-radius:8px;border:1px solid #f59e0b33"><span style="font-size:11px;color:#f59e0b">★</span><span style="font-size:12px;color:#f59e0b;font-weight:700">${c.rating}</span></div>`:""}
+    </div><p class="comment-text">${c.text}</p><div class="comment-likes">${ic("i-heart",12)} ${c.likes}</div></div>`;
+  }).join("")}</div>`:"";
 
   // Extra info block
   let extraHtml="";
@@ -1340,7 +1416,9 @@ function renderDetail(app){
     <div class="social-actions">
       <button class="social-btn ${state.liked?"liked":""}" onclick="state.liked=!state.liked;render()">${ic("i-heart",16)} ${state.liked?"Curtido!":"Curtir"}</button>
       <button class="social-btn" onclick="state.showComment=!state.showComment;render()">${ic("i-msg",16)} Comentar</button>
-      <button class="social-btn">${ic("i-share",16)} Enviar</button>
+      <button class="social-btn ${state.followedEvents&&state.followedEvents.has(ev.id)?"liked":""}" onclick="(function(){if(state.followedEvents.has(${ev.id})){state.followedEvents.delete(${ev.id});}else{state.followedEvents.add(${ev.id});}render();})()">
+        ${ic("i-bell",16)} ${state.followedEvents&&state.followedEvents.has(ev.id)?"Seguindo":"Seguir"}
+      </button>
     </div>
     ${state.showComment?`<div class="rating-popup">
       <div class="rating-popup-title">Seu comentário</div>
@@ -1378,11 +1456,153 @@ function renderTabBar(){
   return `<div class="tab-bar">${tabs.map(t=>`<button class="tab-btn ${state.tab===t.id?"active":""}" onclick="state.tab='${t.id}';render()">${ic(t.icon,22)}<span>${t.label}</span></button>`).join("")}</div>`;
 }
 
+function handleAvatarUpload(e){
+  const file=e.target.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    userAvatar=ev.target.result;
+    document.getElementById('avatar-options').style.display='none';
+    render();
+  };
+  reader.readAsDataURL(file);
+}
+
+function openCamera(){
+  // Tenta getUserMedia (funciona em HTTPS/localhost)
+  // No Android via file://, usa o input capture como fallback
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+    // Fallback: input com capture abre câmera nativa no Android/iOS
+    const inp=document.createElement('input');
+    inp.type='file'; inp.accept='image/*'; inp.capture='user';
+    inp.onchange=e=>handleAvatarUpload(e);
+    inp.click(); return;
+  }
+
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false})
+    .then(stream=>{
+      // Câmera disponível — abre overlay
+      const overlay=document.createElement('div');
+      overlay.id='camera-overlay';
+      overlay.style.cssText='position:fixed;inset:0;background:#000;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px';
+
+      const video=document.createElement('video');
+      video.autoplay=true; video.playsinline=true;
+      video.style.cssText='width:100%;max-width:400px;border-radius:20px;transform:scaleX(-1)';
+      video.srcObject=stream;
+
+      const canvas=document.createElement('canvas');
+      canvas.style.display='none';
+
+      const btnRow=document.createElement('div');
+      btnRow.style.cssText='display:flex;gap:16px';
+
+      const snapBtn=document.createElement('button');
+      snapBtn.textContent='📸 Tirar foto';
+      snapBtn.style.cssText='padding:14px 28px;background:#3b82f6;color:#fff;border:none;border-radius:16px;font-size:15px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif';
+
+      const cancelBtn=document.createElement('button');
+      cancelBtn.textContent='✕ Cancelar';
+      cancelBtn.style.cssText='padding:14px 20px;background:rgba(255,255,255,.1);color:#fff;border:none;border-radius:16px;font-size:15px;cursor:pointer;font-family:Inter,sans-serif';
+
+      const closeCamera=()=>{
+        stream.getTracks().forEach(t=>t.stop());
+        document.body.removeChild(overlay);
+      };
+
+      cancelBtn.onclick=closeCamera;
+
+      snapBtn.onclick=()=>{
+        canvas.width=video.videoWidth;
+        canvas.height=video.videoHeight;
+        const ctx=canvas.getContext('2d');
+        ctx.translate(canvas.width,0); ctx.scale(-1,1);
+        ctx.drawImage(video,0,0);
+        const size=Math.min(canvas.width,canvas.height);
+        const x=(canvas.width-size)/2; const y=(canvas.height-size)/2;
+        const cropCanvas=document.createElement('canvas');
+        cropCanvas.width=300; cropCanvas.height=300;
+        cropCanvas.getContext('2d').drawImage(canvas,x,y,size,size,0,0,300,300);
+        userAvatar=cropCanvas.toDataURL('image/jpeg',0.85);
+        closeCamera();
+        render();
+      };
+
+      btnRow.appendChild(cancelBtn);
+      btnRow.appendChild(snapBtn);
+      overlay.appendChild(video);
+      overlay.appendChild(canvas);
+      overlay.appendChild(btnRow);
+      document.body.appendChild(overlay);
+    })
+    .catch(()=>{
+      // Sem permissão ou HTTPS — usa câmera nativa via input capture
+      const inp=document.createElement('input');
+      inp.type='file'; inp.accept='image/*'; inp.capture='user';
+      inp.onchange=e=>handleAvatarUpload(e);
+      inp.click();
+    });
+}
+
+function openUserProfile(userName){
+  const prof=USER_PROFILES[userName];
+  if(!prof) return;
+  const isFollowing=following.has(prof.id);
+  // Remove overlay anterior se existir
+  const prev=document.getElementById('user-profile-overlay');
+  if(prev) prev.remove();
+
+  const overlay=document.createElement('div');
+  overlay.id='user-profile-overlay';
+  overlay.className='user-profile-overlay';
+  overlay.onclick=e=>{ if(e.target===overlay) overlay.remove(); };
+
+  overlay.innerHTML=`<div class="user-profile-card">
+    <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:52px;height:52px;border-radius:50%;background:#1e3a5f;display:flex;align-items:center;justify-content:center;font-size:26px">${prof.avatar}</div>
+        <div>
+          <div style="font-size:16px;font-weight:700;color:#fff">${userName}</div>
+          <div style="font-size:12px;color:#64748b">${prof.tribo}</div>
+        </div>
+      </div>
+      <button class="follow-btn ${isFollowing?'following':''}" id="follow-btn-${prof.id}"
+        onclick="toggleFollow('${prof.id}','${userName}',this)">
+        ${isFollowing?"✓ Seguindo":"+ Seguir"}
+      </button>
+    </div>
+    <p style="font-size:13px;color:#94a3b8;margin-bottom:16px;line-height:1.5">${prof.bio}</p>
+    <div style="display:flex;gap:24px;padding:12px 0;border-top:1px solid #1e3a5f;border-bottom:1px solid #1e3a5f;margin-bottom:16px">
+      <div style="text-align:center"><div style="font-size:18px;font-weight:700;color:#fff">${prof.eventos}</div><div style="font-size:10px;color:#64748b;letter-spacing:1px;text-transform:uppercase">Eventos</div></div>
+      <div style="text-align:center"><div style="font-size:18px;font-weight:700;color:#fff">${prof.posts}</div><div style="font-size:10px;color:#64748b;letter-spacing:1px;text-transform:uppercase">Posts</div></div>
+      <div style="text-align:center"><div style="font-size:18px;font-weight:700;color:#fff">${isFollowing?'Você':'—'}</div><div style="font-size:10px;color:#64748b;letter-spacing:1px;text-transform:uppercase">Seguidores</div></div>
+    </div>
+    <button onclick="document.getElementById('user-profile-overlay').remove()" style="width:100%;padding:12px;background:transparent;border:1px solid #1e3a5f;border-radius:12px;color:#64748b;font-size:13px;cursor:pointer;font-family:'Inter',sans-serif">Fechar</button>
+  </div>`;
+
+  document.body.appendChild(overlay);
+}
+
+function toggleFollow(userId, userName, btn){
+  if(following.has(userId)){
+    following.delete(userId);
+    btn.textContent='+ Seguir';
+    btn.classList.remove('following');
+  } else {
+    following.add(userId);
+    btn.textContent='✓ Seguindo';
+    btn.classList.add('following');
+  }
+  render(); // atualiza feed "Seguindo"
+  // Reabrir o mini perfil para manter o overlay
+  setTimeout(()=>openUserProfile(userName),10);
+}
+
 function submitComment(evId){
   const txt=document.getElementById("comment-text");
   if(!txt||!txt.value.trim()) return;
   if(!COMMENTS[evId]) COMMENTS[evId]=[];
-  COMMENTS[evId].unshift({user:"Beto",avatar:"B",time:"agora",rating:state.commentRating||0,text:txt.value.trim(),likes:0});
+  COMMENTS[evId].unshift({user:"Beto",avatar:userAvatar||"B",avatarIsPhoto:!!userAvatar,time:"agora",rating:state.commentRating||0,text:txt.value.trim(),likes:0});
   state.showComment=false;state.commentRating=0;
   render();
 }
@@ -1391,7 +1611,7 @@ function submitPost(){
   const txt=document.getElementById("compose-text");
   if(!txt||!txt.value.trim()) return;
   const rating=state.postRating||0;
-  FEED_POSTS.unshift({id:Date.now(),user:"Beto",avatar:"B",time:"agora",text:txt.value.trim(),evId:null,likes:0,comments:0,rating});
+  FEED_POSTS.unshift({id:Date.now(),user:"Beto",avatar:userAvatar||"B",avatarIsPhoto:!!userAvatar,time:"agora",text:txt.value.trim(),evId:null,likes:0,comments:0,rating});
   txt.value="";
   const charEl=document.getElementById("compose-char2");
   if(charEl) charEl.textContent="0/280";
