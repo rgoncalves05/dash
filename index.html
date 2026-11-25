@@ -425,7 +425,7 @@
 </svg>
 
 <script>
-window.DASH_BUILD="2026-11-25 · roteiro v7";
+window.DASH_BUILD="2026-11-25 · roteiro v8";
 window.addEventListener("error",function(e){try{var d=document.getElementById("dash-err");if(!d){d=document.createElement("div");d.id="dash-err";d.style.cssText="position:fixed;left:8px;right:8px;bottom:8px;z-index:99999;background:#b91c1c;color:#fff;font:12px/1.4 Inter,sans-serif;padding:8px 10px;border-radius:10px;white-space:pre-wrap;max-height:30vh;overflow:auto";d.onclick=function(){d.remove();};document.body.appendChild(d);}d.textContent="Erro: "+(e.message||"?")+(e.lineno?" (linha "+e.lineno+")":"")+"\n(toque para fechar)";}catch(x){}});
 
 const EVENTS={filmes:[
@@ -749,9 +749,9 @@ function rgCtxText(fid){
   const sel=filmSubs()[state.subcat]||"Todos";
   return (sel==="Todos"||sel==="🔥 Mais sessões")?"com filmes em cartaz":"com filmes de "+sel;
 }
-function openRegionMap(start,fid){
+function openRegionMap(start,fid,resume){
   if(document.getElementById("rg-ov"))return;
-  RG.tmp=REGION?JSON.parse(JSON.stringify(REGION)):{z:[]};RG.mode="move";RG.start=start||"move";RG.fid=fid||0;RG.pd=rgBuildPins(RG.fid);RG.canRoute=true;
+  RG.tmp=REGION?JSON.parse(JSON.stringify(REGION)):{z:[]};RG.mode="move";RG.start=start||"move";RG.fid=fid||0;RG.resume=resume;RG.pd=rgBuildPins(RG.fid);RG.canRoute=true;
   const ov=document.createElement("div");ov.id="rg-ov";
   ov.style.cssText="position:absolute;inset:0;z-index:60;background:#0a1628;display:flex;flex-direction:column;font-family:'Inter',sans-serif";
   ov.innerHTML=`<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#0d1f3c;border-bottom:1px solid #1e3a5f">
@@ -762,7 +762,7 @@ function openRegionMap(start,fid){
     <div style="display:flex;gap:6px;margin-bottom:8px"><button class="rg-btn" id="rgm-move" onclick="rgMode('move')">✋ Mover</button><button class="rg-btn" id="rgm-draw" onclick="rgMode('draw')">✏️ Desenhar</button><button class="rg-btn" id="rgm-circle" onclick="rgMode('circle')">⭕ Raio</button><button class="rg-btn" id="rgm-loc" onclick="rgMode('loc')">📌 Eu</button></div>
     <div id="rg-locbar" style="display:none;gap:8px;margin-bottom:8px"><button class="rg-btn" onclick="rgGps()">🎯 Usar GPS</button><button class="rg-btn" onclick="rgResetLoc()">Esquecer meu local</button></div>
     <div id="rg-slider" style="display:none;align-items:center;gap:10px;margin-bottom:8px;font-size:12px;color:#cbd5e1"><span>Raio</span><input id="rg-r" type="range" min="1" max="15" step="1" value="3" style="flex:1" oninput="rgRadius(this.value)"><b id="rg-rv">3 km</b></div>
-    <button id="rg-route" class="rg-btn" style="display:none;width:100%;margin-bottom:8px;padding:11px 4px;background:#0f766e;border-color:#14b8a6;color:#fff;font-size:13px" onclick="rgRouteOpen()">🧭 Fazer roteiro dos locais da região</button><div id="rg-count" style="font-size:12px;color:#94a3b8;margin-bottom:8px;line-height:1.5"></div>
+    <button id="rg-resume" class="rg-btn" style="display:none;width:100%;margin-bottom:8px;padding:10px 4px;background:#12233d;border-color:#14b8a6;color:#5eead4;font-size:12px" onclick="rgRouteResume()"></button><button id="rg-route" class="rg-btn" style="display:none;width:100%;margin-bottom:8px;padding:11px 4px;background:#0f766e;border-color:#14b8a6;color:#fff;font-size:13px" onclick="rgRouteOpen()">🧭 Fazer roteiro dos locais da região</button><div id="rg-count" style="font-size:12px;color:#94a3b8;margin-bottom:8px;line-height:1.5"></div>
     <div style="display:flex;gap:8px"><button class="rg-btn" id="rg-undo" onclick="rgUndo()">↶ Voltar</button><button class="rg-btn" onclick="rgClear()">Limpar</button><button class="rg-btn on" style="flex:1.6" onclick="rgApply()">Aplicar região</button></div></div>`;
   document.getElementById("app").appendChild(ov);
   {const rb=document.getElementById("rg-route");if(rb&&RG.canRoute)rb.style.display="block";}
@@ -787,7 +787,7 @@ function rgInit(){
   m.on("click",e=>{
     if(RG.mode==="loc"){setGeo(e.latlng.lat,e.latlng.lng,"manual");rgMeMove();const hh=document.getElementById("rg-hint");if(hh)hh.textContent="Local marcado ✓ — as distâncias usam este ponto.";return;}
     if(RG.mode==="circle"){RG.tmp.z.push({t:"c",c:[e.latlng.lat,e.latlng.lng],r:RG.rad});rgDrawShape();rgPins();}});
-  rgDrawShape();rgPins();rgMode(RG.start||"move");
+  rgDrawShape();rgPins();rgMode(RG.start||"move");rgResumeUpd();if(RG.resume){RG.resume=false;rgRouteResume();}
   setTimeout(()=>m.invalidateSize(),80);
 }
 function rgDrawShape(){
@@ -806,7 +806,7 @@ function rgPins(){
   const u=document.getElementById("rg-undo");if(u){u.textContent="↶ Voltar"+(has?" ("+RG.tmp.z.length+")":"");u.style.opacity=has?1:.45;}
 }
 function rgCard(id){
-  const p=RG.pd.find(x=>x.id===id);if(!p)return;
+  const p=rgPin(id);if(!p)return;
   const col=CC[p.cat].color;
   let box=document.getElementById("rg-card");
   if(!box){box=document.createElement("div");box.id="rg-card";document.getElementById("rg-ov").appendChild(box);}
@@ -850,7 +850,49 @@ function rgRouteClear(){
   RT.seq++;
   if(RG.rt&&RG.map){try{RG.map.removeLayer(RG.rt);}catch(e){}}RG.rt=null;
   const c=document.getElementById("rg-card");if(c&&c.dataset.kind==="route")c.remove();
+  const ro=document.getElementById("rg-reopen");if(ro)ro.remove();
+  rgResumeUpd();
 }
+function rgRouteStore(){
+  try{
+    const r=RT.last;if(!r)return;
+    let ln=RT.line||[];const step=Math.max(1,Math.ceil(ln.length/700));ln=ln.filter((_,i)=>i%step===0||i===ln.length-1).map(q=>[+q[0].toFixed(5),+q[1].toFixed(5)]);
+    localStorage.setItem("dash_route",JSON.stringify({v:1,ts:Date.now(),mode:r.mode||RT.mode,origin:RT.origin||[GEO.lat,GEO.lng],
+      stops:RT.stops.map(p=>({id:p.id.charAt(0)==="s"&&p.id.charAt(1)==="_"?p.id:"s_"+p.id,cat:p.cat,lat:p.lat,lng:p.lng,name:p.name,addr:p.addr||"",th:p.th,ev:p.evs?p.evs.map(e=>e.id):null})),
+      ord:r.ord,legs:r.legs,tot:r.tot,est:!!r.est,line:ln}));
+  }catch(e){}
+}
+function rgRouteSaved(){try{const j=JSON.parse(localStorage.getItem("dash_route")||"null");return j&&j.stops&&j.stops.length&&j.ord?j:null;}catch(e){return null;}}
+function rgResumeUpd(){
+  const b=document.getElementById("rg-resume");if(!b)return;
+  const sv=rgRouteSaved();
+  if(!sv||RG.rt){b.style.display="none";return;}
+  const d=new Date(sv.ts),z=x=>String(x).padStart(2,"0");
+  b.textContent="🧭 Retomar roteiro salvo · "+sv.stops.length+(sv.stops.length>1?" paradas":" parada")+" · "+z(d.getDate())+"/"+z(d.getMonth()+1)+" "+z(d.getHours())+":"+z(d.getMinutes());
+  b.style.display="block";
+}
+function rgRouteResume(){
+  const sv=rgRouteSaved();if(!sv||!RG.map)return;
+  const all=Object.values(EVENTS).flat();
+  RT.seq++;
+  RT.stops=sv.stops.map(q=>({id:q.id,cat:q.cat,lat:q.lat,lng:q.lng,name:q.name,addr:q.addr,th:q.th,evs:q.ev?q.ev.map(id=>all.find(e=>e.id===id)).filter(Boolean):undefined}));
+  RT.mode=sv.mode;RT.origin=sv.origin;RT.line=sv.line;
+  if(RG.rt){try{RG.map.removeLayer(RG.rt);}catch(e){}RG.rt=null;}
+  const ro=document.getElementById("rg-reopen");if(ro)ro.remove();
+  rgRouteDraw(sv.line,sv.ord,sv.est,sv.mode);
+  rgRouteCard({ord:sv.ord,legs:sv.legs,tot:sv.tot,est:sv.est,mode:sv.mode});
+  rgResumeUpd();
+}
+function rgRouteHide(){
+  const c=document.getElementById("rg-card");if(c&&c.dataset.kind==="route")c.remove();
+  const box=document.getElementById("rg-map");if(!box||document.getElementById("rg-reopen"))return;
+  const b=document.createElement("button");b.id="rg-reopen";b.type="button";b.textContent="🧭 Ver roteiro";
+  b.style.cssText="position:absolute;right:10px;bottom:30px;z-index:1000;padding:10px 14px;border-radius:12px;border:2px solid #14b8a6;background:#0f766e;color:#fff;font:700 13px Inter,sans-serif;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.5)";
+  ["pointerdown","touchstart","dblclick"].forEach(t=>b.addEventListener(t,e=>e.stopPropagation()));
+  b.onclick=e=>{e.stopPropagation();rgRouteShow();};
+  box.appendChild(b);
+}
+function rgRouteShow(){const b=document.getElementById("rg-reopen");if(b)b.remove();if(RT.last)rgRouteCard(RT.last);}
 function rgRouteOpen(){
   if(!RG.tmp.z.length){rgToast("Primeiro marque a região: use ✏️ Desenhar ou ⭕ Raio. O roteiro visita todos os locais dentro dela.",0,6500);return;}
   const st=RG.pd.filter(p=>inRegionP([p.lat,p.lng],RG.tmp));
@@ -909,6 +951,15 @@ function visBtn(p){const v=VISITS[visKey(p)];return v?`<button onclick="visOpen(
 function rtVisTxt(p){const v=VISITS[visKey(p)];if(!v)return"";return "   ⭐ Minha nota: "+v.main+"/5 ("+VIS_WORDS[v.main]+")"+(v.loc||v.prog?" · local "+(v.loc||"-")+" · programação "+(v.prog||"-"):"")+"\n"+(v.tags&&v.tags.length?"   "+v.tags.join(" · ")+"\n":"")+(v.txt?"   “"+v.txt+"”\n":"");}
 function rtKm(m){return (m/1000).toFixed(m<10000?1:0).replace(".",",")+" km";}
 function rtTime(sec){const mi=Math.round(sec/60);if(mi<60)return mi+" min";const h=Math.floor(mi/60),r=mi%60;return h+" h"+(r?" "+r+" min":"");}
+function rgRouteDraw(line,ord,est,mode){
+  const st=RT.stops;
+  const col=mode==="car"?"#3b82f6":"#f59e0b";
+  RG.rt=L.layerGroup().addTo(RG.map);
+  L.polyline(line,{color:"#fff",weight:8,opacity:.85,interactive:false}).addTo(RG.rt);
+  L.polyline(line,{color:col,weight:5,opacity:1,dashArray:est?"8 8":null,interactive:false}).addTo(RG.rt);
+  ord.forEach((i,k)=>{const p=st[i-1];L.marker([p.lat,p.lng],{icon:L.divIcon({className:"",html:'<div style="width:24px;height:24px;border-radius:50%;background:'+col+';color:#fff;border:2px solid #fff;font:700 12px Inter,sans-serif;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.6)">'+(k+1)+'</div>',iconSize:[24,24],iconAnchor:[12,34]}),zIndexOffset:1500}).addTo(RG.rt).on("click",()=>rgCard(p.id));});
+  try{const h=document.getElementById("rg-map").clientHeight;RG.map.fitBounds(L.latLngBounds(line.concat([[GEO.lat,GEO.lng]])),{paddingTopLeft:[30,50],paddingBottomRight:[30,Math.round(h*.45)]});}catch(e){}
+}
 async function rgRouteRun(){
   const my=++RT.seq,mode=RT.mode,st=RT.stops;
   if(RG.rt&&RG.map){try{RG.map.removeLayer(RG.rt);}catch(e){}}RG.rt=null;
@@ -924,13 +975,10 @@ async function rgRouteRun(){
   let line=[0].concat(ord).map(i=>pts[i]);
   if(!est){try{const g=await rgOsrmRoute(line,mode);if(my!==RT.seq)return;line=g.line;legs=g.legs;tot=g.tot;}catch(e){if(my!==RT.seq)return;est=true;}}
   if(my!==RT.seq)return;
-  const col=mode==="car"?"#3b82f6":"#f59e0b";
-  RG.rt=L.layerGroup().addTo(RG.map);
-  L.polyline(line,{color:"#fff",weight:8,opacity:.85,interactive:false}).addTo(RG.rt);
-  L.polyline(line,{color:col,weight:5,opacity:1,dashArray:est?"8 8":null,interactive:false}).addTo(RG.rt);
-  ord.forEach((i,k)=>{const p=st[i-1];L.marker([p.lat,p.lng],{icon:L.divIcon({className:"",html:'<div style="width:24px;height:24px;border-radius:50%;background:'+col+';color:#fff;border:2px solid #fff;font:700 12px Inter,sans-serif;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.6)">'+(k+1)+'</div>',iconSize:[24,24],iconAnchor:[12,34]}),zIndexOffset:1500}).addTo(RG.rt).on("click",()=>rgCard(p.id));});
-  try{const h=document.getElementById("rg-map").clientHeight;RG.map.fitBounds(L.latLngBounds(line.concat([[GEO.lat,GEO.lng]])),{paddingTopLeft:[30,50],paddingBottomRight:[30,Math.round(h*.45)]});}catch(e){}
+  RT.origin=[GEO.lat,GEO.lng];RT.line=line;
+  rgRouteDraw(line,ord,est,mode);
   rgRouteCard({ord:ord,legs:legs,tot:tot,est:est,mode:mode});
+  rgRouteStore();
 }
 
 
@@ -981,7 +1029,7 @@ const VIS_TAGS=["Vale a visita","Programação forte","Cheio demais","Bom para i
 const VIS_WORDS=["","Não vale","Fraco","Bom","Muito bom","Imperdível"];
 const VR={id:null,main:0,loc:0,prog:0,tags:[],txt:"",err:false};
 function visOpen(id){
-  const p=RG.pd.find(x=>x.id===id);if(!p)return;
+  const p=rgPin(id);if(!p)return;
   const o=VISITS[visKey(p)]||{};
   Object.assign(VR,{id:id,main:o.main||0,loc:o.loc||0,prog:o.prog||0,tags:(o.tags||[]).slice(),txt:o.txt||"",err:false});
   visRender();
@@ -994,7 +1042,7 @@ function visStars(k,big){
   return h;
 }
 function visRender(){
-  const p=RG.pd.find(x=>x.id===VR.id);if(!p)return;
+  const p=rgPin(VR.id);if(!p)return;
   let ov=document.getElementById("rg-vis");
   if(!ov){ov=document.createElement("div");ov.id="rg-vis";document.getElementById("rg-ov").appendChild(ov);}
   ov.style.cssText="position:absolute;inset:0;z-index:1200;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;font-family:'Inter',sans-serif";
@@ -1016,15 +1064,15 @@ function visRender(){
 }
 function visAfter(){const c=document.getElementById("rg-card");const sc=c?c.scrollTop:0;if(RT.last&&c&&c.dataset.kind==="route"){rgRouteCard(RT.last);const c2=document.getElementById("rg-card");if(c2)c2.scrollTop=sc;}}
 function visSaveNow(){
-  const p=RG.pd.find(x=>x.id===VR.id);if(!p)return;
+  const p=rgPin(VR.id);if(!p)return;
   if(!VR.main){VR.err=true;visRender();return;}
   VISITS[visKey(p)]={main:VR.main,loc:VR.loc,prog:VR.prog,tags:VR.tags.slice(),txt:VR.txt.trim(),ts:Date.now(),name:p.name,cat:p.cat};
   visSave();visClose();visAfter();rgToast("Avaliação salva ★ "+VR.main+"/5",1,2500);
 }
-function visDel(){const p=RG.pd.find(x=>x.id===VR.id);if(p){delete VISITS[visKey(p)];visSave();}visClose();visAfter();}
+function visDel(){const p=rgPin(VR.id);if(p){delete VISITS[visKey(p)];visSave();}visClose();visAfter();}
 function rgGmUrl(seq,mode){
   const last=seq[seq.length-1],mid=seq.slice(0,-1).slice(0,9);
-  return "https://www.google.com/maps/dir/?api=1&origin="+GEO.lat+","+GEO.lng+"&destination="+last.lat+","+last.lng+(mid.length?"&waypoints="+mid.map(p=>p.lat+","+p.lng).join("%7C"):"")+"&travelmode="+(mode==="car"?"driving":"walking");
+  return "https://www.google.com/maps/dir/?api=1&origin="+((RT.origin||[GEO.lat,GEO.lng])[0])+","+((RT.origin||[GEO.lat,GEO.lng])[1])+"&destination="+last.lat+","+last.lng+(mid.length?"&waypoints="+mid.map(p=>p.lat+","+p.lng).join("%7C"):"")+"&travelmode="+(mode==="car"?"driving":"walking");
 }
 function rgShareText(max){
   const r=RT.last;if(!r)return"";
@@ -1111,7 +1159,7 @@ function rgRouteCard(r){
   const mode=RT.mode,st=RT.stops;RT.last=r||null;
   const T=t=>String(t==null?"":t).replace(/</g,"&lt;");
   const mb=(m,l)=>`<button onclick="rgRouteMode('${m}')" style="flex:1;border:1px solid ${mode===m?"#14b8a6":"#1e3a5f"};background:${mode===m?"#0f766e":"#12233d"};color:#fff;border-radius:10px;padding:9px 4px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif">${l}</button>`;
-  let h=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><div style="flex:1"><div style="font-size:15px;font-weight:700;color:#fff">🧭 Roteiro</div><div style="font-size:11px;color:#94a3b8">${st.length} ${st.length>1?"locais":"local"} na região · menor deslocamento total</div></div><button onclick="rgRouteClear()" style="background:#12233d;border:1px solid #1e3a5f;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:14px">✕</button></div>`;
+  let h=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><div style="flex:1"><div style="font-size:15px;font-weight:700;color:#fff">🧭 Roteiro</div><div style="font-size:11px;color:#94a3b8">${st.length} ${st.length>1?"locais":"local"} na região · menor deslocamento total</div></div><button onclick="rgRouteHide()" aria-label="Fechar" style="background:#12233d;border:1px solid #1e3a5f;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:14px">✕</button></div>`;
   h+=`<div style="display:flex;gap:8px;margin-bottom:10px">${mb("car","🚗 De carro")}${mb("walk","🚶 A pé")}</div>`;
   if(!r){box.innerHTML=h+`<div style="padding:14px;text-align:center;font-size:13px;color:#94a3b8">Calculando o melhor caminho…</div>`;return;}
   const ref=GEO.src==="gps"?"sua localização (GPS)":GEO.src==="manual"?"o local que você marcou":"a Av. Paulista (referência: use 🎯 ou 📌 Eu para partir de onde você está)";
@@ -1129,7 +1177,7 @@ function rgRouteCard(r){
     h+=`<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid #1e3a5f"><div style="width:24px;height:24px;border-radius:50%;background:${mode==="car"?"#3b82f6":"#f59e0b"};color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${k+1}</div><div style="flex:1;min-width:0"><div onclick="rgCard('${p.id}')" style="font-size:13px;font-weight:700;color:#fff;cursor:pointer">${T(p.name)}</div><div style="font-size:11px;color:#94a3b8">${T(p.addr||"São Paulo")}</div>${ex?`<div style="font-size:11px;color:#14b8a6;margin-top:2px">${CC[p.cat].em} ${ex}</div>`:""}${dt}${visBtn(p)}</div><div style="font-size:11px;color:#cbd5e1;text-align:right;flex-shrink:0">${rtKm(lg.d)}<br><span style="color:#64748b">${rtTime(lg.t)}</span></div></div>`;
   });
   const seq=r.ord.map(i=>st[i-1]);
-  h+=`<a href="${rgGmUrl(seq,mode)}" target="_blank" rel="noopener" class="rg-btn on" style="display:block;margin-top:10px;padding:11px 4px;text-align:center;text-decoration:none;box-sizing:border-box">Abrir no Google Maps ↗</a>`;
+  h+=`<a href="${rgGmUrl(seq,mode)}" target="_blank" rel="noopener" class="rg-btn on" style="display:block;margin-top:10px;padding:11px 4px;text-align:center;text-decoration:none;box-sizing:border-box">Abrir no Google Maps ↗</a><button class="rg-btn" style="width:100%;margin-top:8px;padding:10px 4px" onclick="rgRouteRun()">↻ Recalcular a partir de onde estou</button>`;
   h+=`<div style="display:flex;gap:8px;margin-top:8px"><button class="rg-btn" style="padding:11px 4px;background:#16a34a;border-color:#22c55e;color:#fff" onclick="rgShareWa()">📲 WhatsApp</button><button class="rg-btn" style="padding:11px 4px" onclick="rgShareImg()">🖼️ Mapa</button><button class="rg-btn" style="padding:11px 4px" onclick="rgCopyRoute()">📋 Copiar</button></div>`;
   h+=`<div style="font-size:10px;color:#64748b;margin-top:6px;line-height:1.4">O WhatsApp leva o passo a passo de cada trecho e o link do mapa. “Mapa” envia um desenho do trajeto (ou baixa o arquivo). “Copiar” guarda o texto completo.${seq.length>10?" O Google Maps aceita até 9 paradas intermediárias; as demais ficam só no texto e no mapa do DASH.":""}</div>`;
   box.innerHTML=h;box.scrollTop=0;
@@ -1220,6 +1268,7 @@ function rgDrawOn(){
 }
 function rgUndo(){if(RG.off&&RG.mode==="draw"){/* encerra traço em andamento sem criar zona */}RG.tmp.z.pop();rgDrawShape();rgPins();}
 function rgClear(){RG.tmp.z=[];rgDrawShape();rgPins();}
+function rgPin(id){return (RT.stops||[]).find(x=>x.id===id)||RG.pd.find(x=>x.id===id);}
 function rgClose(){
   rgDrawOff();rgRouteClear();
   const o=document.getElementById("rg-ov");if(RG.map){try{RG.map.remove();}catch(e){}RG.map=null;RG.lg=null;}
@@ -1283,7 +1332,9 @@ function homeRegionRow(){
   const only=selCats().length===1&&selCats()[0]==="filmes";
   const unit=only?(n==1?"cinema":"cinemas"):(n==1?"local":"locais");
   const rt=routeAllowed()?`<button class="sub-chip active" style="padding:8px 14px;font-size:12px;margin-bottom:10px;background:#0f766e;border-color:#14b8a6" onclick="openRegionMap('draw',0)">🧭 Fazer roteiro</button>`:"";
-  return `<div style="padding:8px 16px 0;flex-shrink:0">${regionRow(n,0,unit)}${rt}</div>`;
+  const sv=rgRouteSaved();
+  const rs=sv?`<button class="sub-chip" style="padding:8px 14px;font-size:12px;margin-bottom:10px;margin-left:6px;border-color:#14b8a6;color:#5eead4" onclick="openRegionMap('move',0,true)">🧭 Retomar roteiro (${sv.stops.length})</button>`:"";
+  return `<div style="padding:8px 16px 0;flex-shrink:0">${regionRow(n,0,unit)}${rt}${rs}</div>`;
 }
 function renderHome(){
   const CS=state.category==="feed"?[]:selCats(),multi=CS.length>1;
