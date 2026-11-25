@@ -425,7 +425,7 @@
 </svg>
 
 <script>
-window.DASH_BUILD="2026-11-25 · roteiro v2";
+window.DASH_BUILD="2026-11-25 · roteiro v6";
 window.addEventListener("error",function(e){try{var d=document.getElementById("dash-err");if(!d){d=document.createElement("div");d.id="dash-err";d.style.cssText="position:fixed;left:8px;right:8px;bottom:8px;z-index:99999;background:#b91c1c;color:#fff;font:12px/1.4 Inter,sans-serif;padding:8px 10px;border-radius:10px;white-space:pre-wrap;max-height:30vh;overflow:auto";d.onclick=function(){d.remove();};document.body.appendChild(d);}d.textContent="Erro: "+(e.message||"?")+(e.lineno?" (linha "+e.lineno+")":"")+"\n(toque para fechar)";}catch(x){}});
 
 const EVENTS={filmes:[
@@ -714,7 +714,7 @@ function catEvents(c,useSub){
   if(useSub){const sel=catSubs(c)[state.subcat]||"Todos";if(sel!=="Todos"&&sel!=="🔥 Mais populares")ev=ev.filter(e=>(e.gb||[]).includes(sel));}
   return ev;
 }
-function routeAllowed(){const cs=selCats();return state.category!=="feed"&&cs.length===1&&cs[0]==="exposicoes"&&(catSubs("exposicoes")[state.subcat]==="Galerias");}
+function routeAllowed(){return state.category!=="feed";}
 function rgBuildPins(fid){
   const out=[];let cs=fid?["filmes"]:selCats();if(!cs.length)cs=["filmes"];
   const one=cs.length===1;
@@ -751,7 +751,7 @@ function rgCtxText(fid){
 }
 function openRegionMap(start,fid){
   if(document.getElementById("rg-ov"))return;
-  RG.tmp=REGION?JSON.parse(JSON.stringify(REGION)):{z:[]};RG.mode="move";RG.start=start||"move";RG.fid=fid||0;RG.pd=rgBuildPins(RG.fid);RG.canRoute=!RG.fid&&routeAllowed();
+  RG.tmp=REGION?JSON.parse(JSON.stringify(REGION)):{z:[]};RG.mode="move";RG.start=start||"move";RG.fid=fid||0;RG.pd=rgBuildPins(RG.fid);RG.canRoute=true;
   const ov=document.createElement("div");ov.id="rg-ov";
   ov.style.cssText="position:absolute;inset:0;z-index:60;background:#0a1628;display:flex;flex-direction:column;font-family:'Inter',sans-serif";
   ov.innerHTML=`<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#0d1f3c;border-bottom:1px solid #1e3a5f">
@@ -762,7 +762,7 @@ function openRegionMap(start,fid){
     <div style="display:flex;gap:6px;margin-bottom:8px"><button class="rg-btn" id="rgm-move" onclick="rgMode('move')">✋ Mover</button><button class="rg-btn" id="rgm-draw" onclick="rgMode('draw')">✏️ Desenhar</button><button class="rg-btn" id="rgm-circle" onclick="rgMode('circle')">⭕ Raio</button><button class="rg-btn" id="rgm-loc" onclick="rgMode('loc')">📌 Eu</button></div>
     <div id="rg-locbar" style="display:none;gap:8px;margin-bottom:8px"><button class="rg-btn" onclick="rgGps()">🎯 Usar GPS</button><button class="rg-btn" onclick="rgResetLoc()">Esquecer meu local</button></div>
     <div id="rg-slider" style="display:none;align-items:center;gap:10px;margin-bottom:8px;font-size:12px;color:#cbd5e1"><span>Raio</span><input id="rg-r" type="range" min="1" max="15" step="1" value="3" style="flex:1" oninput="rgRadius(this.value)"><b id="rg-rv">3 km</b></div>
-    <button id="rg-route" class="rg-btn" style="display:none;width:100%;margin-bottom:8px;padding:11px 4px;background:#0f766e;border-color:#14b8a6;color:#fff;font-size:13px" onclick="rgRouteOpen()">🧭 Fazer roteiro das galerias da região</button><div id="rg-count" style="font-size:12px;color:#94a3b8;margin-bottom:8px;line-height:1.5"></div>
+    <button id="rg-route" class="rg-btn" style="display:none;width:100%;margin-bottom:8px;padding:11px 4px;background:#0f766e;border-color:#14b8a6;color:#fff;font-size:13px" onclick="rgRouteOpen()">🧭 Fazer roteiro dos locais da região</button><div id="rg-count" style="font-size:12px;color:#94a3b8;margin-bottom:8px;line-height:1.5"></div>
     <div style="display:flex;gap:8px"><button class="rg-btn" id="rg-undo" onclick="rgUndo()">↶ Voltar</button><button class="rg-btn" onclick="rgClear()">Limpar</button><button class="rg-btn on" style="flex:1.6" onclick="rgApply()">Aplicar região</button></div></div>`;
   document.getElementById("app").appendChild(ov);
   {const rb=document.getElementById("rg-route");if(rb&&RG.canRoute)rb.style.display="block";}
@@ -852,9 +852,9 @@ function rgRouteClear(){
   const c=document.getElementById("rg-card");if(c&&c.dataset.kind==="route")c.remove();
 }
 function rgRouteOpen(){
-  if(!RG.tmp.z.length){rgToast("Primeiro marque a região: use ✏️ Desenhar ou ⭕ Raio. O roteiro visita as galerias dentro dela.",0,6500);return;}
+  if(!RG.tmp.z.length){rgToast("Primeiro marque a região: use ✏️ Desenhar ou ⭕ Raio. O roteiro visita todos os locais dentro dela.",0,6500);return;}
   const st=RG.pd.filter(p=>inRegionP([p.lat,p.lng],RG.tmp));
-  if(!st.length){rgToast("Nenhuma galeria dentro da região marcada. Aumente a área.",0,5000);return;}
+  if(!st.length){rgToast("Nenhum local dentro da região marcada. Aumente a área.",0,5000);return;}
   RT.stops=st;rgRouteRun();
 }
 function rgRouteMode(m){RT.mode=m;rgRouteRun();}
@@ -875,10 +875,10 @@ async function rgOsrmTable(pts,mode){
 }
 async function rgOsrmRoute(pts,mode){
   const co=pts.map(p=>p[1].toFixed(6)+","+p[0].toFixed(6)).join(";");
-  const j=await rgFetchJson(rgOsrmBase(mode)+"/route/v1/driving/"+co+"?overview=full&geometries=geojson&steps=false");
+  const j=await rgFetchJson(rgOsrmBase(mode)+"/route/v1/driving/"+co+"?overview=full&geometries=geojson&steps=true");
   if(!j||!j.routes||!j.routes[0])throw new Error("sem rota");
   const r=j.routes[0];
-  return {line:r.geometry.coordinates.map(c=>[c[1],c[0]]),legs:r.legs.map(l=>({d:l.distance,t:l.duration})),tot:{d:r.distance,t:r.duration}};
+  return {line:r.geometry.coordinates.map(c=>[c[1],c[0]]),legs:r.legs.map(l=>({d:l.distance,t:l.duration,steps:(l.steps||[]).map(x=>({n:x.name||"",d:x.distance,type:x.maneuver.type,mod:x.maneuver.modifier,b:x.maneuver.bearing_after,ex:x.maneuver.exit}))})),tot:{d:r.distance,t:r.duration}};
 }
 function rgTsp(D){
   const m=D.length-1;if(m<=0)return[];if(m===1)return[1];
@@ -930,29 +930,155 @@ async function rgRouteRun(){
   try{const h=document.getElementById("rg-map").clientHeight;RG.map.fitBounds(L.latLngBounds(line.concat([[GEO.lat,GEO.lng]])),{paddingTopLeft:[30,50],paddingBottomRight:[30,Math.round(h*.45)]});}catch(e){}
   rgRouteCard({ord:ord,legs:legs,tot:tot,est:est,mode:mode});
 }
+
+
+function rtDir(b){return ["norte","nordeste","leste","sudeste","sul","sudoeste","oeste","noroeste"][Math.round((((b||0)%360)+360)%360/45)%8];}
+function rtDist(m){m=Math.max(10,Math.round(m/10)*10);return m<1000?m+" m":(m/1000).toFixed(1).replace(".",",")+" km";}
+function rtOn(n,pr){
+  if(!n)return pr==="na"?"em uma via sem nome":"por uma via sem nome";
+  const m=/^(largo|viaduto|elevado|túnel|tunel|corredor|minhocão|complexo|parque|pátio)$/i.test(n.split(" ")[0]);
+  return (pr==="na"?(m?"no ":"na "):(m?"pelo ":"pela "))+n;
+}
+function rtNormSteps(a){
+  const out=[];
+  (a||[]).forEach(x=>{
+    const pv=out[out.length-1];
+    if(pv&&(x.type==="new name"||x.type==="continue")&&(!x.mod||x.mod==="straight")&&x.n&&x.n===pv.n&&pv.type!=="arrive")pv.d+=x.d;
+    else out.push(Object.assign({},x));
+  });
+  return out;
+}
+function rtStepLine(x,from,to){
+  const dir=rtDir(x.b),len=" por "+rtDist(x.d);
+  const md={left:"à esquerda",right:"à direita","slight left":"levemente à esquerda","slight right":"levemente à direita","sharp left":"fechando à esquerda","sharp right":"fechando à direita",straight:"em frente",uturn:"fazendo o retorno"}[x.mod]||"";
+  switch(x.type){
+    case "depart":return "Saindo "+from+", siga sentido "+dir+" "+rtOn(x.n,"pela")+len;
+    case "arrive":return "Chegada: "+to+(md&&x.mod!=="straight"?" (fica "+md+")":"");
+    case "turn":return "Vire "+(md||"")+" "+rtOn(x.n,"na")+" e siga sentido "+dir+len;
+    case "end of road":return "No fim da via, vire "+(md||"")+" "+rtOn(x.n,"na")+" e siga sentido "+dir+len;
+    case "fork":return "Na bifurcação, mantenha-se "+(md||"em frente")+" "+rtOn(x.n,"na")+", sentido "+dir+len;
+    case "merge":return "Entre "+rtOn(x.n,"na")+" sentido "+dir+len;
+    case "on ramp":return "Pegue o acesso "+(md?md+" ":"")+rtOn(x.n,"na")+", sentido "+dir+len;
+    case "off ramp":return "Pegue a saída "+(md?md+" ":"")+rtOn(x.n,"na")+", sentido "+dir+len;
+    case "roundabout":case "rotary":case "exit roundabout":case "exit rotary":case "roundabout turn":
+      return "Na rotatória, pegue a "+(x.ex?x.ex+"ª ":"")+"saída "+rtOn(x.n,"na")+", sentido "+dir+len;
+    default:return (md&&x.mod!=="straight"?"Siga "+md+" ":"Continue ")+rtOn(x.n,"pela")+" sentido "+dir+len;
+  }
+}
+function rtLegLines(r,k,seq){
+  const lg=r.legs[k];if(!lg||!lg.steps||!lg.steps.length)return null;
+  const from=k===0?(GEO.src==="gps"?"da sua localização":GEO.src==="manual"?"do local marcado":"do ponto de partida (Av. Paulista)"):"de "+seq[k-1].name;
+  return rtNormSteps(lg.steps).map(x=>rtStepLine(x,from,seq[k].name));
+}
+function rgGmUrl(seq,mode){
+  const last=seq[seq.length-1],mid=seq.slice(0,-1).slice(0,9);
+  return "https://www.google.com/maps/dir/?api=1&origin="+GEO.lat+","+GEO.lng+"&destination="+last.lat+","+last.lng+(mid.length?"&waypoints="+mid.map(p=>p.lat+","+p.lng).join("%7C"):"")+"&travelmode="+(mode==="car"?"driving":"walking");
+}
+function rgShareText(max){
+  const r=RT.last;if(!r)return"";
+  const st=RT.stops,mode=r.mode||RT.mode,seq=r.ord.map(i=>st[i-1]);
+  const ref=GEO.src==="gps"?"minha localização":GEO.src==="manual"?"local marcado no mapa":"Av. Paulista (referência)";
+  const em=n=>n<=10?(n===10?"🔟":n+"️⃣"):n+".";
+  const head="🧭 *Roteiro DASH* · "+(mode==="car"?"🚗 de carro":"🚶 a pé")+"\n"+seq.length+(seq.length>1?" paradas":" parada")+" · "+rtKm(r.tot.d)+" · "+rtTime(r.tot.t)+" de deslocamento"+(r.est?" (estimativa)":"")+"\n\n";
+  const tail="\n🗺️ Mapa do trajeto:\n"+rgGmUrl(seq,mode)+(seq.length>10?"\n(o link mostra as 10 primeiras paradas)":"")+"\n\n_Criado no DASH · agenda cultural de SP_";
+  let body="📍 *Partida:* "+ref+"\n",shown=0;
+  for(let k=0;k<seq.length;k++){
+    const p=seq[k],lg=r.legs[k]||{d:0,t:0};
+    const ex=p.evs?p.evs.slice(0,2).map(e=>e.title).join(" · "):"Cinema";
+    const ln=rtLegLines(r,k,seq);
+    let part="\n➡️ *Trecho "+(k+1)+"* · "+rtKm(lg.d)+" · "+rtTime(lg.t)+"\n"+(ln?ln.map((x,i)=>"   "+(i+1)+". "+x).join("\n")+"\n":"")+em(k+1)+" *"+p.name+"*\n   "+(p.addr||"São Paulo")+"\n   "+CC[p.cat].em+" "+ex+"\n";
+    if(max&&(head+body+part+tail).length>max)break;
+    body+=part;shown++;
+  }
+  if(shown<seq.length)body+="\n… e mais "+(seq.length-shown)+" "+(seq.length-shown>1?"paradas":"parada")+" (use 📋 Copiar para o roteiro completo)\n";
+  else body+="\n🏁 *Fim do roteiro*\n";
+  return head+body+tail;
+}
+async function rgShareWa(){
+  if(!RT.last)return;
+  const full=rgShareText(0);
+  if(full.length<=3200){window.open("https://wa.me/?text="+encodeURIComponent(full),"_blank");return;}
+  if(navigator.share){try{await navigator.share({text:full,title:"Roteiro DASH"});return;}catch(e){if(e&&e.name==="AbortError")return;}}
+  window.open("https://wa.me/?text="+encodeURIComponent(rgShareText(3200)),"_blank");
+  rgToast("O texto completo é longo demais para o link do WhatsApp. Toque em 📋 Copiar e cole na conversa.",0,9000);
+}
+async function rgCopyRoute(){
+  const t=rgShareText(0);
+  try{await navigator.clipboard.writeText(t);rgToast("Roteiro completo copiado. Cole onde quiser.",1,4000);}
+  catch(e){const ta=document.createElement("textarea");ta.value=t;document.body.appendChild(ta);ta.select();try{document.execCommand("copy");rgToast("Roteiro completo copiado.",1,4000);}catch(x){rgToast("Não consegui copiar neste aparelho.",0,5000);}ta.remove();}
+}
+function rgRouteCanvas(){
+  const r=RT.last;if(!r)return null;
+  const st=RT.stops,seq=r.ord.map(i=>st[i-1]),mode=r.mode||RT.mode,col=mode==="car"?"#3b82f6":"#f59e0b";
+  const W=1000,H=1000,c=document.createElement("canvas");c.width=W;c.height=H;const g=c.getContext("2d");if(!g)return null;
+  const pts=[[GEO.lat,GEO.lng]].concat(seq.map(p=>[p.lat,p.lng]));
+  const la=pts.map(p=>p[0]),lo=pts.map(p=>p[1]);
+  let a0=Math.min(...la),a1=Math.max(...la),o0=Math.min(...lo),o1=Math.max(...lo);
+  const kx=Math.cos((a0+a1)/2*Math.PI/180);
+  let dx=Math.max((o1-o0)*kx,0.004),dy=Math.max(a1-a0,0.004);
+  const pad=110,top=170,bot=110,sc=Math.min((W-2*pad)/dx,(H-top-bot)/dy);
+  const cx=(o0+o1)/2,cy=(a0+a1)/2;
+  const X=l=>W/2+(l-cx)*kx*sc,Y=a=>top+(H-top-bot)/2-(a-cy)*sc;
+  g.fillStyle="#0f1d33";g.fillRect(0,0,W,H);
+  g.strokeStyle="rgba(255,255,255,.05)";g.lineWidth=1;for(let i=0;i<=20;i++){g.beginPath();g.moveTo(i*50,0);g.lineTo(i*50,H);g.stroke();g.beginPath();g.moveTo(0,i*50);g.lineTo(W,i*50);g.stroke();}
+  g.fillStyle="#fff";g.font="700 44px sans-serif";g.fillText("Roteiro DASH",40,70);
+  g.fillStyle="#94a3b8";g.font="26px sans-serif";g.fillText((mode==="car"?"De carro":"A pé")+" · "+seq.length+" paradas · "+rtKm(r.tot.d)+" · "+rtTime(r.tot.t),40,112);
+  g.fillText("Desenho esquemático do trajeto (sem ruas)",40,148);
+  g.lineJoin="round";g.lineCap="round";
+  g.strokeStyle="#fff";g.lineWidth=11;g.beginPath();pts.forEach((p,i)=>{i?g.lineTo(X(p[1]),Y(p[0])):g.moveTo(X(p[1]),Y(p[0]));});g.stroke();
+  g.strokeStyle=col;g.lineWidth=7;g.beginPath();pts.forEach((p,i)=>{i?g.lineTo(X(p[1]),Y(p[0])):g.moveTo(X(p[1]),Y(p[0]));});g.stroke();
+  g.fillStyle="#2563eb";g.strokeStyle="#fff";g.lineWidth=5;g.beginPath();g.arc(X(pts[0][1]),Y(pts[0][0]),15,0,7);g.fill();g.stroke();
+  g.fillStyle="#fff";g.font="700 22px sans-serif";g.fillText("Partida",X(pts[0][1])+22,Y(pts[0][0])+7);
+  seq.forEach((p,k)=>{
+    const x=X(p.lng),y=Y(p.lat);
+    g.fillStyle=col;g.strokeStyle="#fff";g.lineWidth=4;g.beginPath();g.arc(x,y,20,0,7);g.fill();g.stroke();
+    g.fillStyle="#fff";g.font="700 22px sans-serif";g.textAlign="center";g.fillText(String(k+1),x,y+8);g.textAlign="left";
+    if(seq.length<=14){g.font="22px sans-serif";const nm=p.name.length>26?p.name.slice(0,25)+"…":p.name;g.lineWidth=5;g.strokeStyle="#0f1d33";g.strokeText(nm,x+26,y+8);g.fillStyle="#e2e8f0";g.fillText(nm,x+26,y+8);}
+  });
+  g.fillStyle="#64748b";g.font="22px sans-serif";g.fillText("dash · agenda cultural de São Paulo",40,H-40);
+  return c;
+}
+async function rgShareImg(){
+  try{
+    const c=rgRouteCanvas();if(!c){rgToast("Não consegui gerar a imagem neste aparelho.",0,5000);return;}
+    const blob=await new Promise(res=>c.toBlob(res,"image/png"));
+    const f=new File([blob],"roteiro-dash.png",{type:"image/png"});
+    const t=rgShareText(3200);
+    if(navigator.canShare&&navigator.canShare({files:[f]})){
+      try{await navigator.share({files:[f],text:t,title:"Roteiro DASH"});return;}catch(e){if(e&&e.name==="AbortError")return;}
+    }
+    const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="roteiro-dash.png";document.body.appendChild(a);a.click();a.remove();
+    rgToast("Imagem baixada. Anexe-a na conversa do WhatsApp.",1,5000);
+  }catch(e){rgToast("Não consegui gerar a imagem: "+(e&&e.message||"erro"),0,6000);}
+}
 function rgRouteCard(r){
   let box=document.getElementById("rg-card");
   if(!box){box=document.createElement("div");box.id="rg-card";document.getElementById("rg-ov").appendChild(box);}
   box.dataset.kind="route";
   box.style.cssText="position:absolute;left:0;right:0;bottom:0;max-height:48%;overflow:auto;z-index:1000;background:#0d1f3c;border-top:3px solid #14b8a6;border-radius:18px 18px 0 0;padding:14px 14px 20px;box-shadow:0 -10px 28px rgba(0,0,0,.55);font-family:'Inter',sans-serif";
-  const mode=RT.mode,st=RT.stops;
+  const mode=RT.mode,st=RT.stops;RT.last=r||null;
   const T=t=>String(t==null?"":t).replace(/</g,"&lt;");
   const mb=(m,l)=>`<button onclick="rgRouteMode('${m}')" style="flex:1;border:1px solid ${mode===m?"#14b8a6":"#1e3a5f"};background:${mode===m?"#0f766e":"#12233d"};color:#fff;border-radius:10px;padding:9px 4px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif">${l}</button>`;
-  let h=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><div style="flex:1"><div style="font-size:15px;font-weight:700;color:#fff">🧭 Roteiro de galerias</div><div style="font-size:11px;color:#94a3b8">${st.length} ${st.length>1?"galerias":"galeria"} na região · menor deslocamento total</div></div><button onclick="rgRouteClear()" style="background:#12233d;border:1px solid #1e3a5f;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:14px">✕</button></div>`;
+  let h=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><div style="flex:1"><div style="font-size:15px;font-weight:700;color:#fff">🧭 Roteiro</div><div style="font-size:11px;color:#94a3b8">${st.length} ${st.length>1?"locais":"local"} na região · menor deslocamento total</div></div><button onclick="rgRouteClear()" style="background:#12233d;border:1px solid #1e3a5f;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:14px">✕</button></div>`;
   h+=`<div style="display:flex;gap:8px;margin-bottom:10px">${mb("car","🚗 De carro")}${mb("walk","🚶 A pé")}</div>`;
   if(!r){box.innerHTML=h+`<div style="padding:14px;text-align:center;font-size:13px;color:#94a3b8">Calculando o melhor caminho…</div>`;return;}
   const ref=GEO.src==="gps"?"sua localização (GPS)":GEO.src==="manual"?"o local que você marcou":"a Av. Paulista (referência: use 🎯 ou 📌 Eu para partir de onde você está)";
   h+=`<div style="display:flex;gap:8px;margin-bottom:10px"><div style="flex:1;background:#12233d;border-radius:12px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800;color:#fff">${rtKm(r.tot.d)}</div><div style="font-size:10px;color:#94a3b8">deslocamento total</div></div><div style="flex:1;background:#12233d;border-radius:12px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800;color:#fff">${rtTime(r.tot.t)}</div><div style="font-size:10px;color:#94a3b8">${mode==="car"?"só dirigindo":"só andando"}</div></div></div>`;
   h+=`<div style="font-size:11px;color:#94a3b8;margin-bottom:8px">📍 Partida: ${ref}. Visitas e filas não entram no tempo.</div>`;
+  if(!r.est&&!(r.legs[0]&&r.legs[0].steps&&r.legs[0].steps.length))h+=`<div style="font-size:11px;color:#94a3b8;margin-bottom:8px">Instruções rua a rua indisponíveis para este trajeto.</div>`;
   if(r.est)h+=`<div style="font-size:11px;color:#fbbf24;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.35);border-radius:10px;padding:8px 10px;margin-bottom:8px">⚠️ Não consegui consultar o serviço de rotas (precisa de internet). Mostrando estimativa em linha reta (×1,3), não o traçado real das ruas.</div>`;
+  const seq0=r.ord.map(i=>st[i-1]);
   r.ord.forEach((i,k)=>{
     const p=st[i-1],lg=r.legs[k]||{d:0,t:0};
-    const ex=(p.evs||[]).slice(0,2).map(e=>T(e.title)).join(" · ");
-    h+=`<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid #1e3a5f"><div style="width:24px;height:24px;border-radius:50%;background:${mode==="car"?"#3b82f6":"#f59e0b"};color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${k+1}</div><div style="flex:1;min-width:0"><div onclick="rgCard('${p.id}')" style="font-size:13px;font-weight:700;color:#fff;cursor:pointer">${T(p.name)}</div><div style="font-size:11px;color:#94a3b8">${T(p.addr||"São Paulo")}</div>${ex?`<div style="font-size:11px;color:#14b8a6;margin-top:2px">🖼️ ${ex}</div>`:""}</div><div style="font-size:11px;color:#cbd5e1;text-align:right;flex-shrink:0">${rtKm(lg.d)}<br><span style="color:#64748b">${rtTime(lg.t)}</span></div></div>`;
+    const ln=rtLegLines(r,k,seq0);
+    const dt=ln?`<details style="margin-top:6px"><summary style="font-size:11px;color:#3b82f6;cursor:pointer;font-weight:600">Como chegar · ${ln.length} passos</summary><ol style="margin:6px 0 2px 18px;padding:0;font-size:11px;color:#cbd5e1;line-height:1.5">${ln.map(x=>`<li style="margin-bottom:3px">${T(x)}</li>`).join("")}</ol></details>`:"";
+    const ex=p.evs?p.evs.slice(0,2).map(e=>T(e.title)).join(" · "):"Cinema";
+    h+=`<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid #1e3a5f"><div style="width:24px;height:24px;border-radius:50%;background:${mode==="car"?"#3b82f6":"#f59e0b"};color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${k+1}</div><div style="flex:1;min-width:0"><div onclick="rgCard('${p.id}')" style="font-size:13px;font-weight:700;color:#fff;cursor:pointer">${T(p.name)}</div><div style="font-size:11px;color:#94a3b8">${T(p.addr||"São Paulo")}</div>${ex?`<div style="font-size:11px;color:#14b8a6;margin-top:2px">${CC[p.cat].em} ${ex}</div>`:""}${dt}</div><div style="font-size:11px;color:#cbd5e1;text-align:right;flex-shrink:0">${rtKm(lg.d)}<br><span style="color:#64748b">${rtTime(lg.t)}</span></div></div>`;
   });
-  const seq=r.ord.map(i=>st[i-1]),last=seq[seq.length-1],mid=seq.slice(0,-1).slice(0,9);
-  const gm="https://www.google.com/maps/dir/?api=1&origin="+GEO.lat+","+GEO.lng+"&destination="+last.lat+","+last.lng+(mid.length?"&waypoints="+mid.map(p=>p.lat+","+p.lng).join("%7C"):"")+"&travelmode="+(mode==="car"?"driving":"walking");
-  h+=`<a href="${gm}" target="_blank" rel="noopener" class="rg-btn on" style="display:block;margin-top:10px;padding:11px 4px;text-align:center;text-decoration:none;box-sizing:border-box">Abrir no Google Maps ↗</a>${seq.length>10?`<div style="font-size:10px;color:#64748b;margin-top:4px">O Google Maps aceita até 9 paradas intermediárias; as demais ficam só neste mapa.</div>`:""}`;
+  const seq=r.ord.map(i=>st[i-1]);
+  h+=`<a href="${rgGmUrl(seq,mode)}" target="_blank" rel="noopener" class="rg-btn on" style="display:block;margin-top:10px;padding:11px 4px;text-align:center;text-decoration:none;box-sizing:border-box">Abrir no Google Maps ↗</a>`;
+  h+=`<div style="display:flex;gap:8px;margin-top:8px"><button class="rg-btn" style="padding:11px 4px;background:#16a34a;border-color:#22c55e;color:#fff" onclick="rgShareWa()">📲 WhatsApp</button><button class="rg-btn" style="padding:11px 4px" onclick="rgShareImg()">🖼️ Mapa</button><button class="rg-btn" style="padding:11px 4px" onclick="rgCopyRoute()">📋 Copiar</button></div>`;
+  h+=`<div style="font-size:10px;color:#64748b;margin-top:6px;line-height:1.4">O WhatsApp leva o passo a passo de cada trecho e o link do mapa. “Mapa” envia um desenho do trajeto (ou baixa o arquivo). “Copiar” guarda o texto completo.${seq.length>10?" O Google Maps aceita até 9 paradas intermediárias; as demais ficam só no texto e no mapa do DASH.":""}</div>`;
   box.innerHTML=h;box.scrollTop=0;
 }
 
@@ -1103,7 +1229,7 @@ function homeRegionRow(){
   const pd=rgBuildPins(0),n=pd.filter(p=>inRegionP([p.lat,p.lng])).length;
   const only=selCats().length===1&&selCats()[0]==="filmes";
   const unit=only?(n==1?"cinema":"cinemas"):(n==1?"local":"locais");
-  const rt=routeAllowed()?`<button class="sub-chip active" style="padding:8px 14px;font-size:12px;margin-bottom:10px;background:#0f766e;border-color:#14b8a6" onclick="openRegionMap('draw',0)">🧭 Fazer roteiro das galerias</button>`:"";
+  const rt=routeAllowed()?`<button class="sub-chip active" style="padding:8px 14px;font-size:12px;margin-bottom:10px;background:#0f766e;border-color:#14b8a6" onclick="openRegionMap('draw',0)">🧭 Fazer roteiro</button>`:"";
   return `<div style="padding:8px 16px 0;flex-shrink:0">${regionRow(n,0,unit)}${rt}</div>`;
 }
 function renderHome(){
