@@ -425,7 +425,7 @@
 </svg>
 
 <script>
-window.DASH_BUILD="2026-11-25 · roteiro v6";
+window.DASH_BUILD="2026-11-25 · roteiro v7";
 window.addEventListener("error",function(e){try{var d=document.getElementById("dash-err");if(!d){d=document.createElement("div");d.id="dash-err";d.style.cssText="position:fixed;left:8px;right:8px;bottom:8px;z-index:99999;background:#b91c1c;color:#fff;font:12px/1.4 Inter,sans-serif;padding:8px 10px;border-radius:10px;white-space:pre-wrap;max-height:30vh;overflow:auto";d.onclick=function(){d.remove();};document.body.appendChild(d);}d.textContent="Erro: "+(e.message||"?")+(e.lineno?" (linha "+e.lineno+")":"")+"\n(toque para fechar)";}catch(x){}});
 
 const EVENTS={filmes:[
@@ -839,7 +839,7 @@ function rgCard(id){
     }).join("");
     body+=`<div style="font-size:10px;color:#64748b;margin-top:4px;line-height:1.4">O DASH não vende ingressos: o botão leva ao site da ticketeira.</div>`;
   }
-  box.innerHTML=`<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px"><div style="width:38px;height:38px;border-radius:50%;background:${col};display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;border:2px solid #fff">${CC[p.cat].em}</div><div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:700;color:#fff;line-height:1.25">${T(p.name)}</div><div style="font-size:11px;color:${col};font-weight:600">${CC[p.cat].label}</div><div style="font-size:11px;color:#94a3b8;margin-top:2px">📍 ${T(p.addr||"São Paulo")} · ${kmTxt(d)} ${ref}</div><a href="https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}" target="_blank" rel="noopener" style="font-size:11px;color:#3b82f6;text-decoration:none;font-weight:600">Como chegar ↗</a></div><button onclick="document.getElementById('rg-card').remove()" style="background:#12233d;border:1px solid #1e3a5f;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:14px;flex-shrink:0">✕</button></div>${body}`;
+  box.innerHTML=`<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px"><div style="width:38px;height:38px;border-radius:50%;background:${col};display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;border:2px solid #fff">${CC[p.cat].em}</div><div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:700;color:#fff;line-height:1.25">${T(p.name)}</div><div style="font-size:11px;color:${col};font-weight:600">${CC[p.cat].label}</div><div style="font-size:11px;color:#94a3b8;margin-top:2px">📍 ${T(p.addr||"São Paulo")} · ${kmTxt(d)} ${ref}</div>${VISITS[visKey(p)]?`<div style="font-size:11px;color:#fbbf24;margin-top:2px">★ Sua nota: ${VISITS[visKey(p)].main}/5</div>`:""}<a href="https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}" target="_blank" rel="noopener" style="font-size:11px;color:#3b82f6;text-decoration:none;font-weight:600">Como chegar ↗</a></div><button onclick="document.getElementById('rg-card').remove()" style="background:#12233d;border:1px solid #1e3a5f;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:14px;flex-shrink:0">✕</button></div>${body}`;
   box.dataset.kind="pin";box.scrollTop=0;
 }
 function rgOpenEv(id){rgClose();openEvent(id);}
@@ -905,6 +905,8 @@ function rgTsp(D){
     }}
   return path;
 }
+function visBtn(p){const v=VISITS[visKey(p)];return v?`<button onclick="visOpen('${p.id}')" style="margin-top:6px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.5);color:#fbbf24;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif">${'★'.repeat(v.main)}${'☆'.repeat(5-v.main)} ${v.main}/5 · editar</button>`:`<button onclick="visOpen('${p.id}')" style="margin-top:6px;background:#12233d;border:1px solid #1e3a5f;color:#e2e8f0;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif">✅ Já visitei · avaliar</button>`;}
+function rtVisTxt(p){const v=VISITS[visKey(p)];if(!v)return"";return "   ⭐ Minha nota: "+v.main+"/5 ("+VIS_WORDS[v.main]+")"+(v.loc||v.prog?" · local "+(v.loc||"-")+" · programação "+(v.prog||"-"):"")+"\n"+(v.tags&&v.tags.length?"   "+v.tags.join(" · ")+"\n":"")+(v.txt?"   “"+v.txt+"”\n":"");}
 function rtKm(m){return (m/1000).toFixed(m<10000?1:0).replace(".",",")+" km";}
 function rtTime(sec){const mi=Math.round(sec/60);if(mi<60)return mi+" min";const h=Math.floor(mi/60),r=mi%60;return h+" h"+(r?" "+r+" min":"");}
 async function rgRouteRun(){
@@ -970,6 +972,56 @@ function rtLegLines(r,k,seq){
   const from=k===0?(GEO.src==="gps"?"da sua localização":GEO.src==="manual"?"do local marcado":"do ponto de partida (Av. Paulista)"):"de "+seq[k-1].name;
   return rtNormSteps(lg.steps).map(x=>rtStepLine(x,from,seq[k].name));
 }
+
+/* ===== Avaliação das paradas visitadas (guardada no aparelho) ===== */
+let VISITS={};try{VISITS=JSON.parse(localStorage.getItem("dash_visits")||"{}")||{};}catch(e){VISITS={};}
+function visKey(p){return p.cat+":"+p.name;}
+function visSave(){try{localStorage.setItem("dash_visits",JSON.stringify(VISITS));}catch(e){}}
+const VIS_TAGS=["Vale a visita","Programação forte","Cheio demais","Bom para ir com criança","Preço justo","Fácil de chegar"];
+const VIS_WORDS=["","Não vale","Fraco","Bom","Muito bom","Imperdível"];
+const VR={id:null,main:0,loc:0,prog:0,tags:[],txt:"",err:false};
+function visOpen(id){
+  const p=RG.pd.find(x=>x.id===id);if(!p)return;
+  const o=VISITS[visKey(p)]||{};
+  Object.assign(VR,{id:id,main:o.main||0,loc:o.loc||0,prog:o.prog||0,tags:(o.tags||[]).slice(),txt:o.txt||"",err:false});
+  visRender();
+}
+function visClose(){const e=document.getElementById("rg-vis");if(e)e.remove();}
+function visSet(k,n){VR[k]=(VR[k]===n&&k!=="main")?0:n;VR.err=false;visRender();}
+function visTag(i){const t=VIS_TAGS[i],j=VR.tags.indexOf(t);if(j>=0)VR.tags.splice(j,1);else VR.tags.push(t);visRender();}
+function visStars(k,big){
+  let h="";for(let n=1;n<=5;n++)h+=`<button type="button" aria-label="${n} de 5" onclick="visSet('${k}',${n})" style="background:none;border:none;padding:${big?2:1}px;font-size:${big?34:22}px;line-height:1;cursor:pointer;color:${n<=VR[k]?"#f59e0b":"#334155"}">★</button>`;
+  return h;
+}
+function visRender(){
+  const p=RG.pd.find(x=>x.id===VR.id);if(!p)return;
+  let ov=document.getElementById("rg-vis");
+  if(!ov){ov=document.createElement("div");ov.id="rg-vis";document.getElementById("rg-ov").appendChild(ov);}
+  ov.style.cssText="position:absolute;inset:0;z-index:1200;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;font-family:'Inter',sans-serif";
+  const T=t=>String(t==null?"":t).replace(/</g,"&lt;").replace(/"/g,"&quot;");
+  const idx=RT.last?RT.last.ord.findIndex(i=>RT.stops[i-1].id===p.id):-1,n=RT.last?RT.last.ord.length:0;
+  const had=!!VISITS[visKey(p)];
+  ov.innerHTML=`<div style="width:100%;max-height:92%;overflow:auto;background:#0d1f3c;border-top:3px solid #f59e0b;border-radius:18px 18px 0 0;padding:16px 16px 20px;box-sizing:border-box">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><div style="width:38px;height:38px;border-radius:50%;background:${CC[p.cat].color};display:flex;align-items:center;justify-content:center;font-size:19px;border:2px solid #fff;flex-shrink:0">${CC[p.cat].em}</div><div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:700;color:#fff">${T(p.name)}</div><div style="font-size:11px;color:#94a3b8">${idx>=0?"Parada "+(idx+1)+" de "+n+" · ":""}${T(p.addr||"São Paulo")}</div></div><button onclick="visClose()" aria-label="Fechar" style="background:#12233d;border:1px solid #1e3a5f;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:14px">✕</button></div>
+  <div style="font-size:13px;color:#94a3b8;margin-bottom:2px">Como foi a visita?</div>
+  <div>${visStars("main",1)}</div>
+  <div style="font-size:12px;color:${VR.err?"#f87171":"#94a3b8"};min-height:18px;margin-bottom:10px">${VR.err?"Escolha uma nota para salvar.":(VR.main?VR.main+" de 5 · "+VIS_WORDS[VR.main]:"Toque nas estrelas")}</div>
+  <div style="border-top:1px solid #1e3a5f;padding-top:10px;margin-bottom:12px"><div style="font-size:11px;color:#64748b;margin-bottom:4px">Quer detalhar? (opcional)</div>
+   <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:13px;color:#e2e8f0">🏛️ O local</span><span>${visStars("loc",0)}</span></div>
+   <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:13px;color:#e2e8f0">${CC[p.cat].em} A programação</span><span>${visStars("prog",0)}</span></div></div>
+  <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">${VIS_TAGS.map((t,i)=>`<button type="button" onclick="visTag(${i})" style="font-size:12px;padding:6px 10px;border-radius:999px;cursor:pointer;font-family:'Inter',sans-serif;border:1px solid ${VR.tags.includes(t)?"#3b82f6":"#1e3a5f"};background:${VR.tags.includes(t)?"#3b82f6":"#12233d"};color:#fff">${t}</button>`).join("")}</div>
+  <textarea id="vis-txt" rows="2" maxlength="280" placeholder="Uma frase sobre a visita (opcional)" oninput="VR.txt=this.value" style="width:100%;box-sizing:border-box;background:#0a1628;border:1px solid #1e3a5f;border-radius:10px;padding:8px 10px;color:#fff;font-size:13px;font-family:'Inter',sans-serif;resize:none;outline:none;margin-bottom:12px"></textarea>
+  <div style="display:flex;gap:8px"><button class="rg-btn" onclick="visClose()">${had?"Cancelar":"Pular"}</button>${had?`<button class="rg-btn" onclick="visDel()">Remover</button>`:""}<button class="rg-btn on" style="flex:2" onclick="visSaveNow()">Salvar</button></div></div>`;
+  const ta=document.getElementById("vis-txt");if(ta)ta.value=VR.txt;
+}
+function visAfter(){const c=document.getElementById("rg-card");const sc=c?c.scrollTop:0;if(RT.last&&c&&c.dataset.kind==="route"){rgRouteCard(RT.last);const c2=document.getElementById("rg-card");if(c2)c2.scrollTop=sc;}}
+function visSaveNow(){
+  const p=RG.pd.find(x=>x.id===VR.id);if(!p)return;
+  if(!VR.main){VR.err=true;visRender();return;}
+  VISITS[visKey(p)]={main:VR.main,loc:VR.loc,prog:VR.prog,tags:VR.tags.slice(),txt:VR.txt.trim(),ts:Date.now(),name:p.name,cat:p.cat};
+  visSave();visClose();visAfter();rgToast("Avaliação salva ★ "+VR.main+"/5",1,2500);
+}
+function visDel(){const p=RG.pd.find(x=>x.id===VR.id);if(p){delete VISITS[visKey(p)];visSave();}visClose();visAfter();}
 function rgGmUrl(seq,mode){
   const last=seq[seq.length-1],mid=seq.slice(0,-1).slice(0,9);
   return "https://www.google.com/maps/dir/?api=1&origin="+GEO.lat+","+GEO.lng+"&destination="+last.lat+","+last.lng+(mid.length?"&waypoints="+mid.map(p=>p.lat+","+p.lng).join("%7C"):"")+"&travelmode="+(mode==="car"?"driving":"walking");
@@ -986,7 +1038,7 @@ function rgShareText(max){
     const p=seq[k],lg=r.legs[k]||{d:0,t:0};
     const ex=p.evs?p.evs.slice(0,2).map(e=>e.title).join(" · "):"Cinema";
     const ln=rtLegLines(r,k,seq);
-    let part="\n➡️ *Trecho "+(k+1)+"* · "+rtKm(lg.d)+" · "+rtTime(lg.t)+"\n"+(ln?ln.map((x,i)=>"   "+(i+1)+". "+x).join("\n")+"\n":"")+em(k+1)+" *"+p.name+"*\n   "+(p.addr||"São Paulo")+"\n   "+CC[p.cat].em+" "+ex+"\n";
+    let part="\n➡️ *Trecho "+(k+1)+"* · "+rtKm(lg.d)+" · "+rtTime(lg.t)+"\n"+(ln?ln.map((x,i)=>"   "+(i+1)+". "+x).join("\n")+"\n":"")+em(k+1)+" *"+p.name+"*\n   "+(p.addr||"São Paulo")+"\n   "+CC[p.cat].em+" "+ex+"\n"+rtVisTxt(p);
     if(max&&(head+body+part+tail).length>max)break;
     body+=part;shown++;
   }
@@ -1065,6 +1117,7 @@ function rgRouteCard(r){
   const ref=GEO.src==="gps"?"sua localização (GPS)":GEO.src==="manual"?"o local que você marcou":"a Av. Paulista (referência: use 🎯 ou 📌 Eu para partir de onde você está)";
   h+=`<div style="display:flex;gap:8px;margin-bottom:10px"><div style="flex:1;background:#12233d;border-radius:12px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800;color:#fff">${rtKm(r.tot.d)}</div><div style="font-size:10px;color:#94a3b8">deslocamento total</div></div><div style="flex:1;background:#12233d;border-radius:12px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800;color:#fff">${rtTime(r.tot.t)}</div><div style="font-size:10px;color:#94a3b8">${mode==="car"?"só dirigindo":"só andando"}</div></div></div>`;
   h+=`<div style="font-size:11px;color:#94a3b8;margin-bottom:8px">📍 Partida: ${ref}. Visitas e filas não entram no tempo.</div>`;
+  {const sq=r.ord.map(i=>st[i-1]);const rated=sq.filter(q=>VISITS[visKey(q)]);if(rated.length){const avg=rated.reduce((a,q)=>a+VISITS[visKey(q)].main,0)/rated.length;h+=`<div style="font-size:12px;color:#fbbf24;margin-bottom:8px">★ Suas notas: ${rated.length} de ${sq.length} paradas · média ${avg.toFixed(1).replace('.',',')}</div>`;}}
   if(!r.est&&!(r.legs[0]&&r.legs[0].steps&&r.legs[0].steps.length))h+=`<div style="font-size:11px;color:#94a3b8;margin-bottom:8px">Instruções rua a rua indisponíveis para este trajeto.</div>`;
   if(r.est)h+=`<div style="font-size:11px;color:#fbbf24;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.35);border-radius:10px;padding:8px 10px;margin-bottom:8px">⚠️ Não consegui consultar o serviço de rotas (precisa de internet). Mostrando estimativa em linha reta (×1,3), não o traçado real das ruas.</div>`;
   const seq0=r.ord.map(i=>st[i-1]);
@@ -1073,7 +1126,7 @@ function rgRouteCard(r){
     const ln=rtLegLines(r,k,seq0);
     const dt=ln?`<details style="margin-top:6px"><summary style="font-size:11px;color:#3b82f6;cursor:pointer;font-weight:600">Como chegar · ${ln.length} passos</summary><ol style="margin:6px 0 2px 18px;padding:0;font-size:11px;color:#cbd5e1;line-height:1.5">${ln.map(x=>`<li style="margin-bottom:3px">${T(x)}</li>`).join("")}</ol></details>`:"";
     const ex=p.evs?p.evs.slice(0,2).map(e=>T(e.title)).join(" · "):"Cinema";
-    h+=`<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid #1e3a5f"><div style="width:24px;height:24px;border-radius:50%;background:${mode==="car"?"#3b82f6":"#f59e0b"};color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${k+1}</div><div style="flex:1;min-width:0"><div onclick="rgCard('${p.id}')" style="font-size:13px;font-weight:700;color:#fff;cursor:pointer">${T(p.name)}</div><div style="font-size:11px;color:#94a3b8">${T(p.addr||"São Paulo")}</div>${ex?`<div style="font-size:11px;color:#14b8a6;margin-top:2px">${CC[p.cat].em} ${ex}</div>`:""}${dt}</div><div style="font-size:11px;color:#cbd5e1;text-align:right;flex-shrink:0">${rtKm(lg.d)}<br><span style="color:#64748b">${rtTime(lg.t)}</span></div></div>`;
+    h+=`<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid #1e3a5f"><div style="width:24px;height:24px;border-radius:50%;background:${mode==="car"?"#3b82f6":"#f59e0b"};color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${k+1}</div><div style="flex:1;min-width:0"><div onclick="rgCard('${p.id}')" style="font-size:13px;font-weight:700;color:#fff;cursor:pointer">${T(p.name)}</div><div style="font-size:11px;color:#94a3b8">${T(p.addr||"São Paulo")}</div>${ex?`<div style="font-size:11px;color:#14b8a6;margin-top:2px">${CC[p.cat].em} ${ex}</div>`:""}${dt}${visBtn(p)}</div><div style="font-size:11px;color:#cbd5e1;text-align:right;flex-shrink:0">${rtKm(lg.d)}<br><span style="color:#64748b">${rtTime(lg.t)}</span></div></div>`;
   });
   const seq=r.ord.map(i=>st[i-1]);
   h+=`<a href="${rgGmUrl(seq,mode)}" target="_blank" rel="noopener" class="rg-btn on" style="display:block;margin-top:10px;padding:11px 4px;text-align:center;text-decoration:none;box-sizing:border-box">Abrir no Google Maps ↗</a>`;
