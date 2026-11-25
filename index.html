@@ -1092,32 +1092,49 @@ function renderHome(){
   <div class="event-list">${evhtml}</div>`;
 }
 
+function segCats(){return state.searchAll||state.category==="feed"?["filmes","teatro","exposicoes","shows"]:selCats();}
+function segEvents(){
+  const cs=segCats(),one=cs.length===1&&!state.searchAll;const out=[];
+  cs.forEach(c=>{
+    let ev=catEvents(c,one);
+    if(c==="filmes"){if(one&&(filmSubs()[state.subcat]==="🔥 Mais sessões"))ev=ev.slice().sort((a,b)=>{const x=filmStats(a.id),y=filmStats(b.id);return y.c-x.c||y.n-x.n;});if(REGION)ev=ev.filter(e=>filmStats(e.id).n>0);}
+    else{if(one&&catSubs(c)[state.subcat]==="🔥 Mais populares")ev=ev.slice().sort((a,b)=>(b.cap||0)-(a.cap||0));if(REGION)ev=ev.filter(evInRegion);}
+    ev.forEach(e=>out.push({ev:e,c}));
+  });
+  return out;
+}
+function srchNorm(t){return String(t||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();}
+function srchHay(e){
+  if(e._h)return e._h;
+  const x=e.extra||{};
+  e._h=srchNorm([e.title,e.genre,e.local,e.desc,(e.gb||[]).join(" "),Object.values(x).map(v=>String(v).replace(/<[^>]*>/g," ")).join(" ")].join(" "));
+  return e._h;
+}
+function srchScope(){
+  const cs=segCats();
+  const sub=(!state.searchAll&&cs.length===1)?((cs[0]==="filmes"?filmSubs():catSubs(cs[0]))[state.subcat]||"Todos"):"Todos";
+  return cs.map(c=>CC[c].em+" "+CC[c].label).join(" · ")+(sub!=="Todos"?" › "+sub:"")+(REGION&&!state.searchAll?" · 📍 sua região":(REGION?" · 📍 região":""));
+}
 function renderSearch(){
   return `<div class="section-title"><h1>Buscar</h1></div>
-  <div class="search-input">${ic("i-search",18)}<input id="search-q" placeholder="Filmes, shows, exposicoes..." oninput="doSearch(this.value)"></div>
-  <div id="search-results" style="flex:1;overflow:auto;padding:0 16px 80px">
-    <div class="trending-label">Em alta</div>
-    <div class="trending-chips">
-      <button class="trending-chip" onclick="document.getElementById('search-q').value='Lollapalooza';doSearch('Weeknd')">The Weeknd</button>
-      <button class="trending-chip" onclick="document.getElementById('search-q').value='MASP';doSearch('MASP')">MASP</button>
-      <button class="trending-chip" onclick="document.getElementById('search-q').value='Teatro';doSearch('Teatro')">Teatro</button>
-      <button class="trending-chip" onclick="document.getElementById('search-q').value='Prada';doSearch('Prada')">Diabo Veste Prada</button>
-    </div>
-    <div class="trending-label" style="margin-top:20px">Categorias</div>
-    <div class="cat-grid">${CATEGORIES.slice(0,4).map(c=>`<button class="cat-grid-btn" style="background:${c.color}18;border-color:${c.color}33" onclick="state.tab='home';state.category='${c.id}';render()">${ic(c.icon,28).replace('currentColor',c.color)}<span style="color:${c.color}">${c.label}</span></button>`).join("")}</div>
-  </div>`;
+  <div class="search-input">${ic("i-search",18)}<input id="search-q" value="${(state.sq||"").replace(/"/g,"&quot;")}" placeholder="Título, artista, gênero, local..." oninput="doSearch(this.value)" autocomplete="off"></div>
+  <div style="padding:0 16px 8px;display:flex;align-items:center;gap:8px;font-size:11px;color:#94a3b8"><span style="flex:1;line-height:1.4">Buscando em: <b style="color:#e2e8f0" id="srch-scope">${srchScope()}</b></span><button class="sub-chip ${state.searchAll?"active":""}" style="padding:6px 10px;font-size:11px;flex-shrink:0" onclick="state.searchAll=!state.searchAll;render()">${state.searchAll?"🎯 Só a seleção":"🌐 Tudo"}</button></div>
+  <div id="search-results" style="flex:1;overflow:auto;padding:0 16px 80px">${srchList(state.sq||"")}</div>`;
 }
-
-function doSearch(q){
-  const res=document.getElementById("search-results");
-  if(!q){render();return;}
-  const all=Object.values(EVENTS).flat().filter(e=>e.title.toLowerCase().includes(q.toLowerCase())||e.genre.toLowerCase().includes(q.toLowerCase()));
-  if(all.length===0){res.innerHTML=`<p style="text-align:center;color:#64748b;padding:40px;font-size:14px">Nenhum resultado para "${q}"</p>`;return;}
-  res.innerHTML=all.map(ev=>`<div class="event-card" style="margin-bottom:10px" onclick="openEvent(${ev.id})">
-    <div class="event-img"><img src="${ev.img}" alt="${ev.title}" onerror="this.onerror=null;this.style.display='none';this.parentElement.style.background='linear-gradient(135deg,#1e3a5f,#3b82f6)';this.parentElement.innerHTML='<div style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:rgba(255,255,255,0.5)\\'>'+this.alt.charAt(0)+'</div>'"></div>
-    <div class="event-info"><div class="event-title">${ev.title}</div><div class="event-genre">${ev.genre}</div>
+function srchList(q){
+  const all=segEvents(),n=srchNorm(q).trim().split(/\s+/).filter(Boolean);
+  const res=n.length?all.filter(x=>{const h=srchHay(x.ev);return n.every(t=>h.includes(t));}):all;
+  const head=`<div style="font-size:11px;color:#64748b;margin:2px 0 10px">${res.length} ${res.length==1?"resultado":"resultados"}${n.length?` para "${String(q).replace(/</g,"&lt;")}"`:""}</div>`;
+  if(!res.length)return head+`<p style="text-align:center;color:#64748b;padding:30px 10px;font-size:14px">Nada encontrado nesta seleção.${state.searchAll?"":" Toque em “🌐 Tudo” para buscar em todas as categorias."}</p>`;
+  return head+res.map(({ev,c})=>`<div class="event-card" style="margin-bottom:10px" onclick="openEvent(${ev.id})">
+    <div class="event-img"><img src="${ev.img}" alt="${ev.title.replace(/"/g,"&quot;")}" onerror="this.onerror=null;this.style.display='none';this.parentElement.style.background='linear-gradient(135deg,#1e3a5f,#3b82f6)';this.parentElement.innerHTML='<div style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:rgba(255,255,255,0.5)\\'>'+this.alt.charAt(0)+'</div>'"></div>
+    <div class="event-info"><div class="event-title">${ev.title}</div><div class="event-genre">${CC[c].em} ${ev.genre}${c!=="filmes"&&ev.local?" · "+ev.local:""}</div>
+    ${c==="filmes"&&filmStats(ev.id).n?`<div class="event-sess">🎟️ ${filmStats(ev.id).c} cinemas · ${filmStats(ev.id).n} sessões</div>`:""}
     ${ev.rating?`<div class="event-rating">${ic("i-star",12)}<span>${ev.rating}</span></div>`:""}
     <div class="event-meta"><span class="date">${ic("i-clock",10)} ${ev.date}</span><span class="price">${ic("i-dollar",10)} ${ev.price}</span></div></div></div>`).join("");
+}
+function doSearch(q){
+  state.sq=q;const res=document.getElementById("search-results");if(res)res.innerHTML=srchList(q);
 }
 
 function renderAgenda(){
