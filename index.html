@@ -747,7 +747,7 @@ function rgCtxText(fid){
 }
 function openRegionMap(start,fid){
   if(document.getElementById("rg-ov"))return;
-  RG.tmp=REGION?JSON.parse(JSON.stringify(REGION)):{z:[]};RG.mode="move";RG.start=start||"move";RG.fid=fid||0;RG.pd=rgBuildPins(RG.fid);
+  RG.tmp=REGION?JSON.parse(JSON.stringify(REGION)):{z:[]};RG.mode="move";RG.start=start||"move";RG.fid=fid||0;RG.pd=rgBuildPins(RG.fid);{const _cs=selCats();RG.canRoute=!RG.fid&&_cs.length===1&&_cs[0]==='exposicoes'&&(catSubs('exposicoes')[state.subcat]==='Galerias');}
   const ov=document.createElement("div");ov.id="rg-ov";
   ov.style.cssText="position:absolute;inset:0;z-index:60;background:#0a1628;display:flex;flex-direction:column;font-family:'Inter',sans-serif";
   ov.innerHTML=`<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#0d1f3c;border-bottom:1px solid #1e3a5f">
@@ -759,8 +759,9 @@ function openRegionMap(start,fid){
     <div id="rg-locbar" style="display:none;gap:8px;margin-bottom:8px"><button class="rg-btn" onclick="rgGps()">🎯 Usar GPS</button><button class="rg-btn" onclick="rgResetLoc()">Esquecer meu local</button></div>
     <div id="rg-slider" style="display:none;align-items:center;gap:10px;margin-bottom:8px;font-size:12px;color:#cbd5e1"><span>Raio</span><input id="rg-r" type="range" min="1" max="15" step="1" value="3" style="flex:1" oninput="rgRadius(this.value)"><b id="rg-rv">3 km</b></div>
     <div id="rg-count" style="font-size:12px;color:#94a3b8;margin-bottom:8px;line-height:1.5"></div>
-    <div style="display:flex;gap:8px"><button class="rg-btn" id="rg-undo" onclick="rgUndo()">↶ Voltar</button><button class="rg-btn" onclick="rgClear()">Limpar</button><button class="rg-btn on" style="flex:1.6" onclick="rgApply()">Aplicar região</button></div></div>`;
+    <div style="display:flex;gap:8px"><button class="rg-btn" id="rg-undo" onclick="rgUndo()">↶ Voltar</button><button class="rg-btn" id="rg-route" style="display:none;background:#0f766e;border-color:#14b8a6;color:#fff" onclick="rgRouteOpen()">🧭 Roteiro</button><button class="rg-btn" onclick="rgClear()">Limpar</button><button class="rg-btn on" style="flex:1.6" onclick="rgApply()">Aplicar região</button></div></div>`;
   document.getElementById("app").appendChild(ov);
+  {const rb=document.getElementById("rg-route");if(rb&&RG.canRoute)rb.style.display="";}
   rgLoad(err=>{
     if(err||!window.L){document.getElementById("rg-map").innerHTML='<div style="padding:30px;text-align:center;color:#94a3b8;font-size:13px">Não foi possível carregar o mapa.<br>Verifique sua conexão com a internet.</div>';return;}
     rgInit();
@@ -786,6 +787,7 @@ function rgInit(){
   setTimeout(()=>m.invalidateSize(),80);
 }
 function rgDrawShape(){
+  if(typeof rgRouteClear==="function")rgRouteClear();
   if(!RG.lg)return;RG.lg.clearLayers();
   const st={color:"#22c55e",weight:2,fillColor:"#22c55e",fillOpacity:.15};
   RG.tmp.z.forEach(Z=>(Z.t==="c"?L.circle(Z.c,Object.assign({radius:Z.r},st)):L.polygon(Z.p,st)).addTo(RG.lg));
@@ -834,9 +836,122 @@ function rgCard(id){
     body+=`<div style="font-size:10px;color:#64748b;margin-top:4px;line-height:1.4">O DASH não vende ingressos: o botão leva ao site da ticketeira.</div>`;
   }
   box.innerHTML=`<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px"><div style="width:38px;height:38px;border-radius:50%;background:${col};display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;border:2px solid #fff">${CC[p.cat].em}</div><div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:700;color:#fff;line-height:1.25">${T(p.name)}</div><div style="font-size:11px;color:${col};font-weight:600">${CC[p.cat].label}</div><div style="font-size:11px;color:#94a3b8;margin-top:2px">📍 ${T(p.addr||"São Paulo")} · ${kmTxt(d)} ${ref}</div><a href="https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}" target="_blank" rel="noopener" style="font-size:11px;color:#3b82f6;text-decoration:none;font-weight:600">Como chegar ↗</a></div><button onclick="document.getElementById('rg-card').remove()" style="background:#12233d;border:1px solid #1e3a5f;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:14px;flex-shrink:0">✕</button></div>${body}`;
-  box.scrollTop=0;
+  box.dataset.kind="pin";box.scrollTop=0;
 }
 function rgOpenEv(id){rgClose();openEvent(id);}
+
+/* ===== ROTEIRO de galerias (menor deslocamento, carro ou a pé) ===== */
+const RT={mode:"car",stops:[],seq:0};
+function rgRouteClear(){
+  RT.seq++;
+  if(RG.rt&&RG.map){try{RG.map.removeLayer(RG.rt);}catch(e){}}RG.rt=null;
+  const c=document.getElementById("rg-card");if(c&&c.dataset.kind==="route")c.remove();
+}
+function rgRouteOpen(){
+  if(!RG.tmp.z.length){rgToast("Primeiro marque a região: use ✏️ Desenhar ou ⭕ Raio. O roteiro visita as galerias dentro dela.",0,6500);return;}
+  const st=RG.pd.filter(p=>inRegionP([p.lat,p.lng],RG.tmp));
+  if(!st.length){rgToast("Nenhuma galeria dentro da região marcada. Aumente a área.",0,5000);return;}
+  RT.stops=st;rgRouteRun();
+}
+function rgRouteMode(m){RT.mode=m;rgRouteRun();}
+function rgOsrmBase(mode){return mode==="car"?"https://routing.openstreetmap.de/routed-car":"https://routing.openstreetmap.de/routed-foot";}
+async function rgFetchJson(u){
+  const ac=new AbortController(),t=setTimeout(()=>ac.abort(),12000);
+  try{const r=await fetch(u,{signal:ac.signal});if(!r.ok)throw new Error("http "+r.status);return await r.json();}finally{clearTimeout(t);}
+}
+async function rgOsrmTable(pts,mode){
+  const co=pts.map(p=>p[1].toFixed(6)+","+p[0].toFixed(6)).join(";");
+  const j=await rgFetchJson(rgOsrmBase(mode)+"/table/v1/driving/"+co+"?annotations=distance,duration");
+  if(!j||!j.distances||!j.durations)throw new Error("sem matriz");
+  return pts.map((a,i)=>pts.map((b,k)=>{
+    let d=j.distances[i][k],t=j.durations[i][k];
+    if(d==null||t==null){d=_hav(a[0],a[1],b[0],b[1])*1.3;t=d/(mode==="car"?6.9:1.25);}
+    return {d:d,t:t};
+  }));
+}
+async function rgOsrmRoute(pts,mode){
+  const co=pts.map(p=>p[1].toFixed(6)+","+p[0].toFixed(6)).join(";");
+  const j=await rgFetchJson(rgOsrmBase(mode)+"/route/v1/driving/"+co+"?overview=full&geometries=geojson&steps=false");
+  if(!j||!j.routes||!j.routes[0])throw new Error("sem rota");
+  const r=j.routes[0];
+  return {line:r.geometry.coordinates.map(c=>[c[1],c[0]]),legs:r.legs.map(l=>({d:l.distance,t:l.duration})),tot:{d:r.distance,t:r.duration}};
+}
+function rgTsp(D){
+  const m=D.length-1;if(m<=0)return[];if(m===1)return[1];
+  if(m<=12){
+    const N=1<<m,dp=new Float64Array(N*m).fill(Infinity),par=new Int8Array(N*m).fill(-1);
+    for(let j=0;j<m;j++)dp[(1<<j)*m+j]=D[0][j+1];
+    for(let mk=1;mk<N;mk++)for(let j=0;j<m;j++){
+      if(!(mk&(1<<j)))continue;const cur=dp[mk*m+j];if(cur===Infinity)continue;
+      for(let k=0;k<m;k++){if(mk&(1<<k))continue;const nm=mk|(1<<k),v=cur+D[j+1][k+1];if(v<dp[nm*m+k]){dp[nm*m+k]=v;par[nm*m+k]=j;}}
+    }
+    let mk=N-1,bj=0,bv=Infinity;for(let j=0;j<m;j++)if(dp[mk*m+j]<bv){bv=dp[mk*m+j];bj=j;}
+    const out=[];let j=bj;while(j>=0){out.push(j+1);const pj=par[mk*m+j];mk^=(1<<j);j=pj;}
+    return out.reverse();
+  }
+  const left=new Set();for(let i=1;i<=m;i++)left.add(i);
+  let path=[],cur=0;
+  while(left.size){let b=-1,bd=Infinity;left.forEach(j=>{if(D[cur][j]<bd){bd=D[cur][j];b=j;}});path.push(b);left.delete(b);cur=b;}
+  let imp=true,guard=0;
+  while(imp&&guard++<200){imp=false;
+    for(let i=0;i<path.length-1;i++)for(let j=i+1;j<path.length;j++){
+      const a=i===0?0:path[i-1],b=path[i],c=path[j],d=j+1<path.length?path[j+1]:null;
+      const o=D[a][b]+(d!=null?D[c][d]:0),n=D[a][c]+(d!=null?D[b][d]:0);
+      if(n<o-1e-6){path=path.slice(0,i).concat(path.slice(i,j+1).reverse(),path.slice(j+1));imp=true;}
+    }}
+  return path;
+}
+function rtKm(m){return (m/1000).toFixed(m<10000?1:0).replace(".",",")+" km";}
+function rtTime(sec){const mi=Math.round(sec/60);if(mi<60)return mi+" min";const h=Math.floor(mi/60),r=mi%60;return h+" h"+(r?" "+r+" min":"");}
+async function rgRouteRun(){
+  const my=++RT.seq,mode=RT.mode,st=RT.stops;
+  if(RG.rt&&RG.map){try{RG.map.removeLayer(RG.rt);}catch(e){}}RG.rt=null;
+  rgRouteCard(null);
+  const pts=[[GEO.lat,GEO.lng]].concat(st.map(p=>[p.lat,p.lng]));
+  let M=null,est=false;
+  try{M=await rgOsrmTable(pts,mode);}catch(e){M=null;}
+  if(my!==RT.seq)return;
+  if(!M){est=true;M=pts.map(a=>pts.map(b=>{const d=_hav(a[0],a[1],b[0],b[1])*1.3;return{d:d,t:d/(mode==="car"?6.9:1.25)};}));}
+  const ord=rgTsp(M.map(r=>r.map(x=>x.d)));
+  let legs=[],tot={d:0,t:0},prev=0;
+  ord.forEach(i=>{legs.push(M[prev][i]);tot.d+=M[prev][i].d;tot.t+=M[prev][i].t;prev=i;});
+  let line=[0].concat(ord).map(i=>pts[i]);
+  if(!est){try{const g=await rgOsrmRoute(line,mode);if(my!==RT.seq)return;line=g.line;legs=g.legs;tot=g.tot;}catch(e){if(my!==RT.seq)return;est=true;}}
+  if(my!==RT.seq)return;
+  const col=mode==="car"?"#3b82f6":"#f59e0b";
+  RG.rt=L.layerGroup().addTo(RG.map);
+  L.polyline(line,{color:"#fff",weight:8,opacity:.85,interactive:false}).addTo(RG.rt);
+  L.polyline(line,{color:col,weight:5,opacity:1,dashArray:est?"8 8":null,interactive:false}).addTo(RG.rt);
+  ord.forEach((i,k)=>{const p=st[i-1];L.marker([p.lat,p.lng],{icon:L.divIcon({className:"",html:'<div style="width:24px;height:24px;border-radius:50%;background:'+col+';color:#fff;border:2px solid #fff;font:700 12px Inter,sans-serif;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.6)">'+(k+1)+'</div>',iconSize:[24,24],iconAnchor:[12,34]}),zIndexOffset:1500}).addTo(RG.rt).on("click",()=>rgCard(p.id));});
+  try{const h=document.getElementById("rg-map").clientHeight;RG.map.fitBounds(L.latLngBounds(line.concat([[GEO.lat,GEO.lng]])),{paddingTopLeft:[30,50],paddingBottomRight:[30,Math.round(h*.45)]});}catch(e){}
+  rgRouteCard({ord:ord,legs:legs,tot:tot,est:est,mode:mode});
+}
+function rgRouteCard(r){
+  let box=document.getElementById("rg-card");
+  if(!box){box=document.createElement("div");box.id="rg-card";document.getElementById("rg-ov").appendChild(box);}
+  box.dataset.kind="route";
+  box.style.cssText="position:absolute;left:0;right:0;bottom:0;max-height:48%;overflow:auto;z-index:1000;background:#0d1f3c;border-top:3px solid #14b8a6;border-radius:18px 18px 0 0;padding:14px 14px 20px;box-shadow:0 -10px 28px rgba(0,0,0,.55);font-family:'Inter',sans-serif";
+  const mode=RT.mode,st=RT.stops;
+  const T=t=>String(t==null?"":t).replace(/</g,"&lt;");
+  const mb=(m,l)=>`<button onclick="rgRouteMode('${m}')" style="flex:1;border:1px solid ${mode===m?"#14b8a6":"#1e3a5f"};background:${mode===m?"#0f766e":"#12233d"};color:#fff;border-radius:10px;padding:9px 4px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif">${l}</button>`;
+  let h=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><div style="flex:1"><div style="font-size:15px;font-weight:700;color:#fff">🧭 Roteiro de galerias</div><div style="font-size:11px;color:#94a3b8">${st.length} ${st.length>1?"galerias":"galeria"} na região · menor deslocamento total</div></div><button onclick="rgRouteClear()" style="background:#12233d;border:1px solid #1e3a5f;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:14px">✕</button></div>`;
+  h+=`<div style="display:flex;gap:8px;margin-bottom:10px">${mb("car","🚗 De carro")}${mb("walk","🚶 A pé")}</div>`;
+  if(!r){box.innerHTML=h+`<div style="padding:14px;text-align:center;font-size:13px;color:#94a3b8">Calculando o melhor caminho…</div>`;return;}
+  const ref=GEO.src==="gps"?"sua localização (GPS)":GEO.src==="manual"?"o local que você marcou":"a Av. Paulista (referência: use 🎯 ou 📌 Eu para partir de onde você está)";
+  h+=`<div style="display:flex;gap:8px;margin-bottom:10px"><div style="flex:1;background:#12233d;border-radius:12px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800;color:#fff">${rtKm(r.tot.d)}</div><div style="font-size:10px;color:#94a3b8">deslocamento total</div></div><div style="flex:1;background:#12233d;border-radius:12px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800;color:#fff">${rtTime(r.tot.t)}</div><div style="font-size:10px;color:#94a3b8">${mode==="car"?"só dirigindo":"só andando"}</div></div></div>`;
+  h+=`<div style="font-size:11px;color:#94a3b8;margin-bottom:8px">📍 Partida: ${ref}. Visitas e filas não entram no tempo.</div>`;
+  if(r.est)h+=`<div style="font-size:11px;color:#fbbf24;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.35);border-radius:10px;padding:8px 10px;margin-bottom:8px">⚠️ Não consegui consultar o serviço de rotas (precisa de internet). Mostrando estimativa em linha reta (×1,3), não o traçado real das ruas.</div>`;
+  r.ord.forEach((i,k)=>{
+    const p=st[i-1],lg=r.legs[k]||{d:0,t:0};
+    const ex=(p.evs||[]).slice(0,2).map(e=>T(e.title)).join(" · ");
+    h+=`<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid #1e3a5f"><div style="width:24px;height:24px;border-radius:50%;background:${mode==="car"?"#3b82f6":"#f59e0b"};color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${k+1}</div><div style="flex:1;min-width:0"><div onclick="rgCard('${p.id}')" style="font-size:13px;font-weight:700;color:#fff;cursor:pointer">${T(p.name)}</div><div style="font-size:11px;color:#94a3b8">${T(p.addr||"São Paulo")}</div>${ex?`<div style="font-size:11px;color:#14b8a6;margin-top:2px">🖼️ ${ex}</div>`:""}</div><div style="font-size:11px;color:#cbd5e1;text-align:right;flex-shrink:0">${rtKm(lg.d)}<br><span style="color:#64748b">${rtTime(lg.t)}</span></div></div>`;
+  });
+  const seq=r.ord.map(i=>st[i-1]),last=seq[seq.length-1],mid=seq.slice(0,-1).slice(0,9);
+  const gm="https://www.google.com/maps/dir/?api=1&origin="+GEO.lat+","+GEO.lng+"&destination="+last.lat+","+last.lng+(mid.length?"&waypoints="+mid.map(p=>p.lat+","+p.lng).join("%7C"):"")+"&travelmode="+(mode==="car"?"driving":"walking");
+  h+=`<a href="${gm}" target="_blank" rel="noopener" class="rg-btn on" style="display:block;margin-top:10px;padding:11px 4px;text-align:center;text-decoration:none;box-sizing:border-box">Abrir no Google Maps ↗</a>${seq.length>10?`<div style="font-size:10px;color:#64748b;margin-top:4px">O Google Maps aceita até 9 paradas intermediárias; as demais ficam só neste mapa.</div>`:""}`;
+  box.innerHTML=h;box.scrollTop=0;
+}
+
 function rgDrawOff(){
   if(RG.off){RG.off();RG.off=null;}
   if(RG.map)RG.map.dragging.enable();
@@ -923,7 +1038,7 @@ function rgDrawOn(){
 function rgUndo(){if(RG.off&&RG.mode==="draw"){/* encerra traço em andamento sem criar zona */}RG.tmp.z.pop();rgDrawShape();rgPins();}
 function rgClear(){RG.tmp.z=[];rgDrawShape();rgPins();}
 function rgClose(){
-  rgDrawOff();
+  rgDrawOff();rgRouteClear();
   const o=document.getElementById("rg-ov");if(RG.map){try{RG.map.remove();}catch(e){}RG.map=null;RG.lg=null;}
   if(o)o.remove();geoRefresh();
 }
