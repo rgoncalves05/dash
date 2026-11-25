@@ -425,6 +425,9 @@
 </svg>
 
 <script>
+window.DASH_BUILD="2026-11-25 · roteiro v2";
+window.addEventListener("error",function(e){try{var d=document.getElementById("dash-err");if(!d){d=document.createElement("div");d.id="dash-err";d.style.cssText="position:fixed;left:8px;right:8px;bottom:8px;z-index:99999;background:#b91c1c;color:#fff;font:12px/1.4 Inter,sans-serif;padding:8px 10px;border-radius:10px;white-space:pre-wrap;max-height:30vh;overflow:auto";d.onclick=function(){d.remove();};document.body.appendChild(d);}d.textContent="Erro: "+(e.message||"?")+(e.lineno?" (linha "+e.lineno+")":"")+"\n(toque para fechar)";}catch(x){}});
+
 const EVENTS={filmes:[
 {id:30636,title:"100 Dias",genre:"Aventura / Drama",img:"https://ingresso-a.akamaihd.net/prd/img/movie/100-dias/566367c3-5e8b-4330-b1c9-57cf7faca732.webp",rating:0,price:"R$ 22,80",local:"Cinemark Shopping Iguatemi SP (+18 cinemas)",date:"24/11",desc:"Sozinho em um pequeno barco, Amyr Klink desafia o Atlântico Sul a remo e escreve uma história que nunca havia sido tentada. A travessia entre a África e o Brasil se transforma em uma batalha contra o medo, a solidão e os próprios limites. Enquanto o corpo resiste ao mar, a mente enfrenta memórias, conflitos familiares e escolhas que moldaram quem ele é. Mais do que cruzar um oceano, Amyr precisa atravessar a si mesmo.",extra:{"ano": "2026", "duracao": "116 min", "diretor": "Carlos Saldanha", "produtor": "Disney", "elenco": "Filipe Bragança, Philippine Leroy-Beaulieu, Gero Camilo", "classificacao": "12 anos"}},
 {id:33331,title:"A Terra Do Meu Pai",genre:"Drama",img:"https://ingresso-a.akamaihd.net/prd/img/movie/a-terra-do-meu-pai/8b720f07-03ac-42ba-9091-c4cf1300e892.webp",rating:0,price:"R$ 18,24",local:"Cinema Reserva Cultural São Paulo (+3 cinemas)",date:"24/11",desc:"A Terra do Meu Pai acompanha a complexa relação entre o vencedor do Prêmio Nobel de Literatura Thomas Mann (Hanns Zischler) e sua filha Erika (Sandra Hüller), uma multifacetada atriz, escritora e pilota de rali. No verão de 1949, durante o ápice da Guerra Fria, pai e filha embarcam em uma densa e emocionante road trip a bordo de um Buick preto pelas ruínas da Alemanha, partindo de Frankfurt sob domínio estadunidense até a Weimar sob controle soviético. De volta ao lar após 16 anos de exílio nos EUA, o icônico autor é forçado a confrontar não apenas os destroços de uma nação dividida, mas também as feridas irremediáveis de sua própria família.",extra:{"ano": "2026", "duracao": "82 min", "diretor": "Paweł Pawlikowski", "produtor": "Imovision", "elenco": "Sandra Hüller, Hanns Zischler, August Diehl, Devid Striesow", "classificacao": "12 anos"}},
@@ -711,6 +714,7 @@ function catEvents(c,useSub){
   if(useSub){const sel=catSubs(c)[state.subcat]||"Todos";if(sel!=="Todos"&&sel!=="🔥 Mais populares")ev=ev.filter(e=>(e.gb||[]).includes(sel));}
   return ev;
 }
+function routeAllowed(){const cs=selCats();return state.category!=="feed"&&cs.length===1&&cs[0]==="exposicoes"&&(catSubs("exposicoes")[state.subcat]==="Galerias");}
 function rgBuildPins(fid){
   const out=[];let cs=fid?["filmes"]:selCats();if(!cs.length)cs=["filmes"];
   const one=cs.length===1;
@@ -747,21 +751,21 @@ function rgCtxText(fid){
 }
 function openRegionMap(start,fid){
   if(document.getElementById("rg-ov"))return;
-  RG.tmp=REGION?JSON.parse(JSON.stringify(REGION)):{z:[]};RG.mode="move";RG.start=start||"move";RG.fid=fid||0;RG.pd=rgBuildPins(RG.fid);{const _cs=selCats();RG.canRoute=!RG.fid&&_cs.length===1&&_cs[0]==='exposicoes'&&(catSubs('exposicoes')[state.subcat]==='Galerias');}
+  RG.tmp=REGION?JSON.parse(JSON.stringify(REGION)):{z:[]};RG.mode="move";RG.start=start||"move";RG.fid=fid||0;RG.pd=rgBuildPins(RG.fid);RG.canRoute=!RG.fid&&routeAllowed();
   const ov=document.createElement("div");ov.id="rg-ov";
   ov.style.cssText="position:absolute;inset:0;z-index:60;background:#0a1628;display:flex;flex-direction:column;font-family:'Inter',sans-serif";
   ov.innerHTML=`<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#0d1f3c;border-bottom:1px solid #1e3a5f">
     <button onclick="rgClose()" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer">←</button>
-    <div style="flex:1"><div style="font-size:15px;font-weight:700;color:#fff">Minha região</div><div id="rg-hint" style="font-size:11px;color:#94a3b8"></div></div></div>
+    <div style="flex:1"><div style="font-size:15px;font-weight:700;color:#fff">Minha região <span style="font-size:9px;font-weight:400;color:#64748b">${window.DASH_BUILD}</span></div><div id="rg-hint" style="font-size:11px;color:#94a3b8"></div></div></div>
   <div id="rg-map" style="flex:1;position:relative;background:#0f1d33;min-height:0"></div>
   <div style="background:#0d1f3c;border-top:1px solid #1e3a5f;padding:10px 12px">
     <div style="display:flex;gap:6px;margin-bottom:8px"><button class="rg-btn" id="rgm-move" onclick="rgMode('move')">✋ Mover</button><button class="rg-btn" id="rgm-draw" onclick="rgMode('draw')">✏️ Desenhar</button><button class="rg-btn" id="rgm-circle" onclick="rgMode('circle')">⭕ Raio</button><button class="rg-btn" id="rgm-loc" onclick="rgMode('loc')">📌 Eu</button></div>
     <div id="rg-locbar" style="display:none;gap:8px;margin-bottom:8px"><button class="rg-btn" onclick="rgGps()">🎯 Usar GPS</button><button class="rg-btn" onclick="rgResetLoc()">Esquecer meu local</button></div>
     <div id="rg-slider" style="display:none;align-items:center;gap:10px;margin-bottom:8px;font-size:12px;color:#cbd5e1"><span>Raio</span><input id="rg-r" type="range" min="1" max="15" step="1" value="3" style="flex:1" oninput="rgRadius(this.value)"><b id="rg-rv">3 km</b></div>
-    <div id="rg-count" style="font-size:12px;color:#94a3b8;margin-bottom:8px;line-height:1.5"></div>
-    <div style="display:flex;gap:8px"><button class="rg-btn" id="rg-undo" onclick="rgUndo()">↶ Voltar</button><button class="rg-btn" id="rg-route" style="display:none;background:#0f766e;border-color:#14b8a6;color:#fff" onclick="rgRouteOpen()">🧭 Roteiro</button><button class="rg-btn" onclick="rgClear()">Limpar</button><button class="rg-btn on" style="flex:1.6" onclick="rgApply()">Aplicar região</button></div></div>`;
+    <button id="rg-route" class="rg-btn" style="display:none;width:100%;margin-bottom:8px;padding:11px 4px;background:#0f766e;border-color:#14b8a6;color:#fff;font-size:13px" onclick="rgRouteOpen()">🧭 Fazer roteiro das galerias da região</button><div id="rg-count" style="font-size:12px;color:#94a3b8;margin-bottom:8px;line-height:1.5"></div>
+    <div style="display:flex;gap:8px"><button class="rg-btn" id="rg-undo" onclick="rgUndo()">↶ Voltar</button><button class="rg-btn" onclick="rgClear()">Limpar</button><button class="rg-btn on" style="flex:1.6" onclick="rgApply()">Aplicar região</button></div></div>`;
   document.getElementById("app").appendChild(ov);
-  {const rb=document.getElementById("rg-route");if(rb&&RG.canRoute)rb.style.display="";}
+  {const rb=document.getElementById("rg-route");if(rb&&RG.canRoute)rb.style.display="block";}
   rgLoad(err=>{
     if(err||!window.L){document.getElementById("rg-map").innerHTML='<div style="padding:30px;text-align:center;color:#94a3b8;font-size:13px">Não foi possível carregar o mapa.<br>Verifique sua conexão com a internet.</div>';return;}
     rgInit();
@@ -1099,7 +1103,8 @@ function homeRegionRow(){
   const pd=rgBuildPins(0),n=pd.filter(p=>inRegionP([p.lat,p.lng])).length;
   const only=selCats().length===1&&selCats()[0]==="filmes";
   const unit=only?(n==1?"cinema":"cinemas"):(n==1?"local":"locais");
-  return `<div style="padding:8px 16px 0;flex-shrink:0">${regionRow(n,0,unit)}</div>`;
+  const rt=routeAllowed()?`<button class="sub-chip active" style="padding:8px 14px;font-size:12px;margin-bottom:10px;background:#0f766e;border-color:#14b8a6" onclick="openRegionMap('draw',0)">🧭 Fazer roteiro das galerias</button>`:"";
+  return `<div style="padding:8px 16px 0;flex-shrink:0">${regionRow(n,0,unit)}${rt}</div>`;
 }
 function renderHome(){
   const CS=state.category==="feed"?[]:selCats(),multi=CS.length>1;
